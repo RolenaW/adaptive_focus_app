@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-
+import 'screens/welcome_screen.dart';
+import 'screens/focus_setup_screen.dart';
+import 'screens/insights_screen.dart';
+import 'screens/soundscape_screen.dart';
+import 'screens/active_session_screen.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -11,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Adaptive Focus',
       theme: ThemeData(
         // This is the theme of your application.
         //
