@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'navigation_screen.dart';
 
-class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class
+class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class. Stateless widget used
   const WelcomeScreen({super.key});
 
   @override
@@ -128,12 +129,11 @@ class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class
       child: SizedBox(
         height: 54,
         child: ElevatedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Starting', //still editing
-                ),
+          onPressed: () { //when button pressed move to navigation screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:(context) => const NavigationScreen(),
               ),
             );
           },
