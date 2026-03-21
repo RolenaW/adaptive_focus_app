@@ -1,16 +1,16 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart'; //import for local key-value
 
-class PreferencesHelper {
-  static const String _darkModeKey = 'is_dark_mode';
+class PreferencesHelper { //helps group all app preferences
+  static const String _darkModeKey = 'is_dark_mode'; //exact storage keys used in sharedpreference
   static const String _onboardingSeenKey = 'onboarding_seen';
   static const String _defaultSessionMinutesKey = 'default_session_minutes';
 
-  static Future<bool> getIsDarkMode() async {
+  static Future<bool> getIsDarkMode() async { //opens sharedP, reads dark mode and returns false if nothing is saved (getters)
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_darkModeKey) ?? false;
   }
 
-  static Future<void> setIsDarkMode(bool value) async {
+  static Future<void> setIsDarkMode(bool value) async { //writes a bool value for local storage (setters)
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_darkModeKey, value);
   }
