@@ -5,9 +5,10 @@ class DatabaseHelper { //DatabaseHelper class created
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal(); //shared helper for the app / singleton
   static Database? _database; //stores opened database in memory
-  static const String _databaseName = 'adaptive_focus_studio.db';
   static const int _databaseVersion = 1;
+  static const String _databaseName = 'adaptive_focus_studio.db';
   static const String focusSessionsTable = 'focus_sessions';
+  static const String soundPresetsTable = 'sound_presets';
 
   Future<Database> get database async { //gives access to database instance
     if (_database != null) { //if the database already exist then it's returned
@@ -45,6 +46,20 @@ class DatabaseHelper { //DatabaseHelper class created
         created_at TEXT NOT NULL
       )
     ''');
+    //sound presets table
+    await db.execute('''
+    CREATE TABLE $soundPresetsTable (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      preset_name TEXT NOT NULL,
+      rain_enabled INTEGER NOT NULL DEFAULT 0,
+      cafe_enabled INTEGER NOT NULL DEFAULT 0,
+      white_noise_enabled INTEGER NOT NULL DEFAULT 0,
+      nature_enabled INTEGER NOT NULL DEFAULT 0,
+      instrumental_enabled INTEGER NOT NULL DEFAULT 0,
+      master_volume REAL NOT NULL DEFAULT 0.5,
+      created_at TEXT NOT NULL
+    )
+  ''');
   }
   Future<int> createFocusSession(Map<String, dynamic> sessionData) async { //insert new row into table
     final Database db = await database;
@@ -74,5 +89,28 @@ class DatabaseHelper { //DatabaseHelper class created
     }
 
     return results.first;
+  }
+  Future<int> updateFocusSession( //updates row using its ID
+    int id,
+    Map<String, dynamic> updatedData,
+  ) async {
+    final Database db = await database;
+
+    return db.update(
+      focusSessionsTable,
+      updatedData,
+      where: 'id = ?',
+      whereArgs: <Object>[id],
+    );
+  }
+
+  Future<int> deleteFocusSession(int id) async { //deletes row by ID
+    final Database db = await database;
+
+    return db.delete(
+      focusSessionsTable,
+      where: 'id = ?',
+      whereArgs: <Object>[id],
+    );
   }
 }
