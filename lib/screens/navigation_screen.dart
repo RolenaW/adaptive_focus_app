@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'focus_setup_screen.dart';
 import 'active_session_screen.dart';
 import 'soundscape_screen.dart';
+import 'insights_screen.dart';
 
 class NavigationScreen extends StatefulWidget { //NavigationScreen class created. StatefulWidget used.
   const NavigationScreen({super.key});
@@ -17,6 +18,7 @@ class _MainNavigationScreenState extends State<NavigationScreen> {
     const FocusSetupScreen(), 
     const ActiveSessionScreen(),
     const SoundscapeScreen(),
+    const InsightsScreen(),
     const _NavigationPlaceholderScreen(
       title: 'Focus Setup',
       description: 'This is where users will choose mood, task type, energy level and session length.',
