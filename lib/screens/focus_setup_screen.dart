@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../data/database_helper.dart';
 
-class FocusSetupScreen extends StatefulWidget {
+class FocusSetupScreen extends StatefulWidget { //creates FocusSetupScreen class, statefulwidget used
   const FocusSetupScreen({super.key});
 
   @override
@@ -8,10 +9,10 @@ class FocusSetupScreen extends StatefulWidget {
 }
 
 class _FocusSetupScreenState extends State<FocusSetupScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _sessionNameController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>(); //lets flutter identify/control form
+  final TextEditingController _sessionNameController = TextEditingController(); //manages text input for session name
 
-  final List<String> _moodOptions = <String>[
+  final List<String> _moodOptions = <String>[ //mood options
     'Calm',
     'Focused',
     'Tired',
@@ -19,7 +20,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     'Motivated',
   ];
 
-  final List<String> _taskTypeOptions = <String>[
+  final List<String> _taskTypeOptions = <String>[ //tasks options
     'Studying',
     'Writing',
     'Coding',
@@ -27,27 +28,27 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     'Planning',
   ];
 
-  final List<int> _workDurationOptions = <int>[25, 45, 60, 90];
+  final List<int> _workDurationOptions = <int>[25, 45, 60, 90]; //duaration
   final List<int> _breakDurationOptions = <int>[5, 10, 15, 20];
 
-  String? _selectedMood;
-  String? _selectedTaskType;
-  int _selectedWorkDuration = 25;
-  int _selectedBreakDuration = 5;
-  double _energyLevel = 5.0;
-  bool _saveAsBlueprint = false;
-  DateTime? _selectedStartDate;
+  String? _selectedMood; //stores current mood
+  String? _selectedTaskType; //stores task type
+  int _selectedWorkDuration = 25; //stores woek duration (default = 25)
+  int _selectedBreakDuration = 5; //stores break duration (default = 5)
+  double _energyLevel = 5.0; //stores slider value
+  bool _saveAsBlueprint = false; //stores whether user checked checkbox (default = false)
+  DateTime? _selectedStartDate; //stores date
 
   @override
-  void dispose() {
+  void dispose() { //prevent memory leaks. keeps everything clean
     _sessionNameController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickStartDate() async {
+  Future<void> _pickStartDate() async { //opens a date picker
     final DateTime now = DateTime.now();
 
-    final DateTime? pickedDate = await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker( //flutter built-in date picker
       context: context,
       initialDate: _selectedStartDate ?? now,
       firstDate: now.subtract(const Duration(days: 30)),
@@ -55,17 +56,17 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       helpText: 'Select Session Date',
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null) { //if date is picked then update the screen state, rebuild
       setState(() {
         _selectedStartDate = pickedDate;
       });
     }
   }
 
-  void _submitForm() {
-    final bool isFormValid = _formKey.currentState?.validate() ?? false;
+  Future<void> _submitForm() async { //runs when save setup button pressed
+    final bool isFormValid = _formKey.currentState?.validate() ?? false; //asks field to validate runs
 
-    if (!isFormValid) {
+    if (!isFormValid) { //shows an error if field is incomplete
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please complete all required fields correctly.'),
@@ -74,7 +75,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       return;
     }
 
-    if (_selectedStartDate == null) {
+    if (_selectedStartDate == null) { //check if valid date is picked
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a session date.'),
@@ -83,15 +84,32 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       return;
     }
 
-    final String cleanedSessionName = _sessionNameController.text.trim();
+    final String cleanedSessionName = _sessionNameController.text.trim(); //removes extra spaces
 
-    showDialog<void>(
+    final Map<String, dynamic> sessionData = <String, dynamic>{ //matches the column names in focus table
+    'session_name': cleanedSessionName,
+    'mood': _selectedMood!,
+    'task_type': _selectedTaskType!,
+    'energy_level': _energyLevel.round(), 
+    'work_duration_minutes': _selectedWorkDuration,
+    'break_duration_minutes': _selectedBreakDuration,
+    'session_date': _selectedStartDate!.toIso8601String(),
+    'completed': 0,
+    'created_at': DateTime.now().toIso8601String(),
+  };
+
+  try {
+    await DatabaseHelper.instance.createFocusSession(sessionData); //inserts row into database 
+
+    if (!mounted) return;
+
+    showDialog<void>( //showw confirmed dialog
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Session Ready'),
+          title: const Text('Session Saved'),
           content: Text(
-            'Session "$cleanedSessionName" is ready.\n\n'
+            'Session "$cleanedSessionName" was saved successfully.\n\n'
             'Mood: $_selectedMood\n'
             'Task: $_selectedTaskType\n'
             'Energy: ${_energyLevel.round()}/10\n'
@@ -110,28 +128,37 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
         );
       },
     );
+  } catch (error) {
+    if (!mounted) return; //cleanup for disposed widgets
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Failed to save session: $error'),
+      ),
+    );
+  }
   }
 
-  String? _validateSessionName(String? value) {
+  String? _validateSessionName(String? value) { //validates session name
     final String cleanedValue = value?.trim() ?? '';
 
-    if (cleanedValue.isEmpty) {
+    if (cleanedValue.isEmpty) { //field can't be blank
       return 'Please enter a session name.';
     }
 
-    if (cleanedValue.length < 3) {
+    if (cleanedValue.length < 3) { //avoids names that are too short
       return 'Session name must be at least 3 characters.';
     }
 
-    if (cleanedValue.length > 30) {
+    if (cleanedValue.length > 30) { //avoids too long names
       return 'Session name must be 30 characters or less.';
     }
 
     return null;
   }
 
-  String? _validateRequiredSelection(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
+  String? _validateRequiredSelection(String? value, String fieldName) { //checks dropdown selections
+    if (value == null || value.trim().isEmpty) { //if its empty return error
       return 'Please select a $fieldName.';
     }
     return null;
@@ -139,34 +166,34 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: LayoutBuilder(
+    return SafeArea( //protection
+      child: LayoutBuilder( //gives avaliable width of screen
         builder: (BuildContext context, BoxConstraints constraints) {
           final bool useWideLayout = constraints.maxWidth >= 700;
 
-          return SingleChildScrollView(
+          return SingleChildScrollView( //scroll
             padding: const EdgeInsets.all(16.0),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 900),
-                child: Form(
+                child: Form( //all inputs widgets here
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Text(
+                      Text( //screen heading
                         'Focus Session Setup',
                         style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      Text(
+                      Text( //description
                         'Set your mood, task type, energy level, and timing before starting a session.',
                         style: Theme.of(context).textTheme.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 20),
-                      Card(
+                      Card( //card that groups main form fields
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: useWideLayout
@@ -209,12 +236,12 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     );
   }
 
-  Widget _buildLeftColumn(BuildContext context) {
+  Widget _buildLeftColumn(BuildContext context) { //builds left half of the form
     return Column(
       children: <Widget>[
-        TextFormField(
+        TextFormField( //connects filed to text controller
           controller: _sessionNameController,
-          textInputAction: TextInputAction.next,
+          textInputAction: TextInputAction.next, //changes keyboard action to next
           decoration: const InputDecoration(
             labelText: 'Session Name',
             hintText: 'Example: Deep Study Block',
@@ -223,25 +250,24 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
           validator: _validateSessionName,
         ),
         const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
+        DropdownButtonFormField<String>( //dropdown for mood
           value: _selectedMood,
           decoration: const InputDecoration(
             labelText: 'Mood',
             prefixIcon: Icon(Icons.mood_rounded),
           ),
-          items: _moodOptions.map((String mood) {
+          items: _moodOptions.map((String mood) { //loops through modd lists and converts each dropdown item
             return DropdownMenuItem<String>(
               value: mood,
               child: Text(mood),
             );
           }).toList(),
-          onChanged: (String? value) {
+          onChanged: (String? value) { //stroes when user picks a mood
             setState(() {
               _selectedMood = value;
             });
           },
-          validator: (String? value) =>
-              _validateRequiredSelection(value, 'mood'),
+          validator: (String? value) => _validateRequiredSelection(value, 'mood'), //uses the reusable validation helper
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
@@ -250,7 +276,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
             labelText: 'Task Type',
             prefixIcon: Icon(Icons.task_alt_rounded),
           ),
-          items: _taskTypeOptions.map((String taskType) {
+          items: _taskTypeOptions.map((String taskType) { //works the same as mood but task type instead ^
             return DropdownMenuItem<String>(
               value: taskType,
               child: Text(taskType),
@@ -285,12 +311,12 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     );
   }
 
-  Widget _buildRightColumn(BuildContext context) {
+  Widget _buildRightColumn(BuildContext context) { //builds right half of the form
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          'Energy Level: ${_energyLevel.round()}/10',
+          'Energy Level: ${_energyLevel.round()}/10', //shows slider value
           style: Theme.of(context).textTheme.titleMedium,
         ),
         Slider(
@@ -319,7 +345,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
             );
           }).toList(),
           onChanged: (int? value) {
-            if (value != null) {
+            if (value != null) { //dropdown can be null
               setState(() {
                 _selectedWorkDuration = value;
               });
@@ -348,7 +374,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
           },
         ),
         const SizedBox(height: 16),
-        CheckboxListTile(
+        CheckboxListTile( //check box requirement
           contentPadding: EdgeInsets.zero,
           value: _saveAsBlueprint,
           title: const Text('Save as reusable blueprint'),
@@ -363,7 +389,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context) {
+  Widget _buildSummaryCard(BuildContext context) { //live summary of form state
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -417,7 +443,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime date) { ///converts date into string like: XX/XX/XXXX
     final String month = date.month.toString().padLeft(2, '0');
     final String day = date.day.toString().padLeft(2, '0');
     final String year = date.year.toString();
@@ -425,7 +451,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
   }
 }
 
-class _SummaryRow extends StatelessWidget {
+class _SummaryRow extends StatelessWidget { //reusable widget for summary
   final String label;
   final String value;
 
