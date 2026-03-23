@@ -1,10 +1,92 @@
 import 'package:flutter/material.dart';
-
-class InsightsScreen extends StatelessWidget { //InsightsScreen class created. 
+import '../data/database_helper.dart';
+class InsightsScreen extends StatefulWidget { //InsightsScreen class created. Was stateless but changed to stateful
   const InsightsScreen({super.key});
+  @override
+  State<InsightsScreen> createState() => _InsightsScreenState();
+}
+
+class _InsightsScreenState extends State<InsightsScreen> {
+  bool _isLoading = true; //tracks whether screen is still loading database data
+  int _totalSessions = 0; //stores focus sessions
+  int _completedSessions = 0; //counts completed rows
+  int _totalDeepWorkMinutes = 0; //adds work duration
+  double _averageWorkDuration = 0; //calculates average work duration
+
+  @override //loading data
+  void initState() {
+    super.initState();
+    _loadInsights();
+  }
+
+  Future<void> _loadInsights() async { //main SQLite method
+    try {
+      final List<Map<String, dynamic>> sessions =
+          await DatabaseHelper.instance.getAllFocusSessions();
+
+      int completedSessions = 0;
+      int totalDeepWorkMinutes = 0;
+
+      for (final Map<String, dynamic> session in sessions) {
+        final int workDuration =
+            (session['work_duration_minutes'] as int?) ?? 0;
+        final int completed = (session['completed'] as int?) ?? 0;
+
+        totalDeepWorkMinutes += workDuration;
+
+        if (completed == 1) {
+          completedSessions++;
+        }
+      }
+
+      final double averageWorkDuration = sessions.isEmpty
+          ? 0
+          : totalDeepWorkMinutes / sessions.length;
+
+      if (!mounted) return;
+
+      setState(() {
+        _totalSessions = sessions.length;
+        _completedSessions = completedSessions;
+        _totalDeepWorkMinutes = totalDeepWorkMinutes;
+        _averageWorkDuration = averageWorkDuration;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load insights: $error'),
+        ),
+      );
+    }
+  }
+
+  String _formatMinutes(int totalMinutes) { //turns raw minutes into text
+    final int hours = totalMinutes ~/ 60;
+    final int minutes = totalMinutes % 60;
+
+    if (hours == 0) {
+      return '${minutes}m';
+    }
+
+    return '${hours}h ${minutes}m';
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) { //gices user a loading indicator 
+      return const SafeArea(
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
@@ -28,29 +110,29 @@ class InsightsScreen extends StatelessWidget { //InsightsScreen class created.
                 const SizedBox(height: 24),
                 _InsightCard( //custom widget/reusbale widget for layout
                   title: 'Total Sessions',
-                  value: 'placeholder', //edit v(below)
-                  subtitle: 'Focus sessions completed this week',
+                  value: _totalSessions.toString(),
+                  subtitle: 'Saved focus sessions in the database',
                   icon: Icons.check_circle_outline,
                 ),
                 const SizedBox(height: 16),
                 _InsightCard(
                   title: 'Average Focus Rating',
-                  value: 'placeholder',
-                  subtitle: 'Based on recent completed sessions',
+                  value: _completedSessions.toString(),
+                  subtitle: 'Sessions marked as completed',
                   icon: Icons.star_outline,
                 ),
                 const SizedBox(height: 16),
                 _InsightCard(
                   title: 'Total Deep Work Time',
-                  value: 'placeholder',
-                  subtitle: 'Accumulated focus time this week',
+                  value: _formatMinutes(_totalDeepWorkMinutes),
+                  subtitle: 'Total planned work duration across saved sessions',
                   icon: Icons.timer_outlined,
                 ),
                 const SizedBox(height: 16),
                 _InsightCard(
                   title: 'Distractions Logged',
-                  value: 'placeholder',
-                  subtitle: 'Interruptions recorded across sessions',
+                  value: '${_averageWorkDuration.toStringAsFixed(1)} min',
+                  subtitle: 'Average work duration per saved session',
                   icon: Icons.notification_important_outlined,
                 ),
                 const SizedBox(height: 24),
@@ -87,15 +169,7 @@ class InsightsScreen extends StatelessWidget { //InsightsScreen class created.
                 SizedBox(
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Real analytics will be connected after SQLite data is added.',
-                          ),
-                        ),
-                      );
-                    },
+                    onPressed: _loadInsights,
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('Refresh Insights'),
                   ),
