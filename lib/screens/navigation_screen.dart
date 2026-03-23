@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'focus_setup_screen.dart';
+import 'active_session_screen.dart';
 
 class NavigationScreen extends StatefulWidget { //NavigationScreen class created. StatefulWidget used.
   const NavigationScreen({super.key});
@@ -13,6 +14,7 @@ class _MainNavigationScreenState extends State<NavigationScreen> {
 
   late final List<Widget> _screens = [ //list that stores the pages shown for each tab
     const FocusSetupScreen(),
+    const ActiveSessionScreen(),
     const _NavigationPlaceholderScreen(
       title: 'Focus Setup',
       description: 'This is where users will choose mood, task type, energy level and session length.',
