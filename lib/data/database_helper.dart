@@ -237,4 +237,10 @@ Future<int> deleteSessionBlueprint(int id) async {
     whereArgs: <Object>[id],
   );
 }
+Future<void> closeDatabase() async { //closes database connection
+    if (_database != null) {
+      await _database!.close();
+      _database = null; //resets database to null
+    }
+  }
 }
