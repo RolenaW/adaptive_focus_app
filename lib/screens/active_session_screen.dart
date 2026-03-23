@@ -23,7 +23,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     super.dispose();
   }
 
-  Future<void> _markSessionCompleted() async {
+  Future<void> _markSessionCompleted() async { //mark saved session as completed
     if (widget.sessionId == null) {
       return;
     }
