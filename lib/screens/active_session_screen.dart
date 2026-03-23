@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
 class ActiveSessionScreen extends StatefulWidget { //creates ActiveScreenSession class, stateful used
-  const ActiveSessionScreen({super.key});
+  final int? sessionId; //tells screen which db row to update
+  const ActiveSessionScreen({super.key, this.sessionId,});
 
   @override
   State<ActiveSessionScreen> createState() => _ActiveSessionScreenState();
@@ -22,17 +23,14 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     super.dispose();
   }
 
-  Future<void> _markLatestSessionCompleted() async {
+  Future<void> _markSessionCompleted() async {
+    if (widget.sessionId == null) {
+      return;
+    }
+
     try {
-      final sessions = await DatabaseHelper.instance.getAllFocusSessions(); 
-
-      if (sessions.isEmpty) return; //return by newest
-
-      final latestSession = sessions.first; //most recent session
-      final int id = latestSession['id'] as int; //gets id of session
-
-      await DatabaseHelper.instance.updateFocusSession( //marks as completed
-        id,
+      await DatabaseHelper.instance.updateFocusSession(
+        widget.sessionId!,
         <String, dynamic>{
           'completed': 1,
         },
@@ -91,11 +89,13 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
 
   Future<void> _switchMode() async { //Pomodoro: switching b/w focus and break
     final bool wasFocusSession = !_isBreak; //before switching, lets us check if we're currentlly in focus block
+
     _timer?.cancel();
 
     if (wasFocusSession) {
-      await _markLatestSessionCompleted(); //update databasse when focus block finishes
+      await _markSessionCompleted(); //update databasse when focus block finishes
     }
+
     if (!mounted) return;
 
     setState(() { //switch timer to next mode

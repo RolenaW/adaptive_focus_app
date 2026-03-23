@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
+import 'active_session_screen.dart';
 
 class FocusSetupScreen extends StatefulWidget { //creates FocusSetupScreen class, statefulwidget used
   const FocusSetupScreen({super.key});
@@ -99,11 +100,11 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
   };
 
   try {
-    await DatabaseHelper.instance.createFocusSession(sessionData); //inserts row into database 
+    final int insertedId = await DatabaseHelper.instance.createFocusSession(sessionData); //inserts row into database, gives exact ID of new session
 
     if (!mounted) return;
 
-    showDialog<void>( //showw confirmed dialog
+    await showDialog<void>( //showw confirmed dialog
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
@@ -122,11 +123,19 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Close'),
+              child: const Text('Continue'),
             ),
           ],
         );
       },
+    );
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ActiveSessionScreen(sessionId: insertedId), //active timer screen knows exactly which session to mark
+      ),
     );
   } catch (error) {
     if (!mounted) return; //cleanup for disposed widgets
