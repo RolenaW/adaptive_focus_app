@@ -1,25 +1,26 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-class DatabaseHelper {
+class DatabaseHelper { //DatabaseHelper class created
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal(); //shared helper for the app / singleton
   static Database? _database; //stores opened database in memory
   static const String _databaseName = 'adaptive_focus_studio.db';
   static const int _databaseVersion = 1;
+  static const String focusSessionsTable = 'focus_sessions';
 
-  Future<Database> get database async {
-    if (_database != null) {
+  Future<Database> get database async { //gives access to database instance
+    if (_database != null) { //if the database already exist then it's returned
       return _database!;
     }
-    _database = await _initializeDatabase();
+    _database = await _initializeDatabase(); //opens database
     return _database!;
   }
-  Future<Database> _initializeDatabase() async {
-    final String databasesPath = await getDatabasesPath();
-    final String path = join(databasesPath, _databaseName);
+  Future<Database> _initializeDatabase() async { //gives access to 
+    final String databasesPath = await getDatabasesPath(); //database folder
+    final String path = join(databasesPath, _databaseName); //builds files
 
-    return openDatabase(
+    return openDatabase( //opens database
       path,
       version: _databaseVersion,
       onCreate: _createDatabase,
@@ -27,7 +28,51 @@ class DatabaseHelper {
     );
   }
   Future<void> _configureDatabase(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON');
+    await db.execute('PRAGMA foreign_keys = ON'); //foreign key support
   }
-  Future<void> _createDatabase(Database db, int version) async {}
+  Future<void> _createDatabase(Database db, int version) async { //focus session table created
+    await db.execute('''
+      CREATE TABLE $focusSessionsTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_name TEXT NOT NULL,
+        mood TEXT NOT NULL,
+        task_type TEXT NOT NULL,
+        energy_level INTEGER NOT NULL,
+        work_duration_minutes INTEGER NOT NULL,
+        break_duration_minutes INTEGER NOT NULL,
+        session_date TEXT NOT NULL,
+        completed INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+  }
+  Future<int> createFocusSession(Map<String, dynamic> sessionData) async { //insert new row into table
+    final Database db = await database;
+    return db.insert(focusSessionsTable, sessionData); //return row ID
+  }
+
+  Future<List<Map<String, dynamic>>> getAllFocusSessions() async { //returns all saved sessions
+    final Database db = await database;
+    return db.query(
+      focusSessionsTable,
+      orderBy: 'created_at DESC', //shows the newest sessions first
+    );
+  }
+
+  Future<Map<String, dynamic>?> getFocusSessionById(int id) async { //returns a session by ID
+    final Database db = await database;
+
+    final List<Map<String, dynamic>> results = await db.query(
+      focusSessionsTable,
+      where: 'id = ?',
+      whereArgs: <Object>[id],
+      limit: 1,
+    );
+
+    if (results.isEmpty) { //not found then null
+      return null;
+    }
+
+    return results.first;
+  }
 }
