@@ -9,6 +9,7 @@ class DatabaseHelper { //DatabaseHelper class created
   static const String _databaseName = 'adaptive_focus_studio.db';
   static const String focusSessionsTable = 'focus_sessions';
   static const String soundPresetsTable = 'sound_presets';
+  static const String sessionBlueprintsTable = 'session_blueprints';
 
   Future<Database> get database async { //gives access to database instance
     if (_database != null) { //if the database already exist then it's returned
@@ -60,6 +61,22 @@ class DatabaseHelper { //DatabaseHelper class created
       created_at TEXT NOT NULL
     )
   ''');
+  //session blueprint table
+  await db.execute('''
+  CREATE TABLE $sessionBlueprintsTable (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    blueprint_name TEXT NOT NULL,
+    mood TEXT NOT NULL,
+    task_type TEXT NOT NULL,
+    energy_level INTEGER NOT NULL,
+    work_duration_minutes INTEGER NOT NULL,
+    break_duration_minutes INTEGER NOT NULL,
+    preset_id INTEGER,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (preset_id) REFERENCES $soundPresetsTable (id)
+      ON DELETE SET NULL
+  )
+''');
   }
   Future<int> createFocusSession(Map<String, dynamic> sessionData) async { //insert new row into table
     final Database db = await database;
@@ -113,4 +130,111 @@ class DatabaseHelper { //DatabaseHelper class created
       whereArgs: <Object>[id],
     );
   }
+
+  Future<int> createSoundPreset(Map<String, dynamic> presetData) async { //SOUND PRESET: same operations as focus 
+  final Database db = await database;
+  return db.insert(soundPresetsTable, presetData);
+}
+
+Future<List<Map<String, dynamic>>> getAllSoundPresets() async {
+  final Database db = await database;
+  return db.query(
+    soundPresetsTable,
+    orderBy: 'created_at DESC',
+  );
+}
+
+Future<Map<String, dynamic>?> getSoundPresetById(int id) async {
+  final Database db = await database;
+
+  final List<Map<String, dynamic>> results = await db.query(
+    soundPresetsTable,
+    where: 'id = ?',
+    whereArgs: <Object>[id],
+    limit: 1,
+  );
+
+  if (results.isEmpty) {
+    return null;
+  }
+
+  return results.first;
+}
+
+Future<int> updateSoundPreset(
+  int id,
+  Map<String, dynamic> updatedData,
+) async {
+  final Database db = await database;
+
+  return db.update(
+    soundPresetsTable,
+    updatedData,
+    where: 'id = ?',
+    whereArgs: <Object>[id],
+  );
+}
+
+Future<int> deleteSoundPreset(int id) async {
+  final Database db = await database;
+
+  return db.delete(
+    soundPresetsTable,
+    where: 'id = ?',
+    whereArgs: <Object>[id],
+  );
+}
+Future<int> createSessionBlueprint(Map<String, dynamic> blueprintData) async { //SESSION BLUEPRINT: same operations as focus 
+  final Database db = await database;
+  return db.insert(sessionBlueprintsTable, blueprintData);
+}
+
+Future<List<Map<String, dynamic>>> getAllSessionBlueprints() async {
+  final Database db = await database;
+  return db.query(
+    sessionBlueprintsTable,
+    orderBy: 'created_at DESC',
+  );
+}
+
+Future<Map<String, dynamic>?> getSessionBlueprintById(int id) async {
+  final Database db = await database;
+
+  final List<Map<String, dynamic>> results = await db.query(
+    sessionBlueprintsTable,
+    where: 'id = ?',
+    whereArgs: <Object>[id],
+    limit: 1,
+  );
+
+  if (results.isEmpty) {
+    return null;
+  }
+
+  return results.first;
+}
+
+Future<int> updateSessionBlueprint(
+  int id,
+  Map<String, dynamic> updatedData,
+) async {
+  final Database db = await database;
+
+  return db.update(
+    sessionBlueprintsTable,
+    updatedData,
+    where: 'id = ?',
+    whereArgs: <Object>[id],
+  );
+}
+
+Future<int> deleteSessionBlueprint(int id) async {
+  final Database db = await database;
+
+  return db.delete(
+    sessionBlueprintsTable,
+    where: 'id = ?',
+    whereArgs: <Object>[id],
+  );
+}
 }
