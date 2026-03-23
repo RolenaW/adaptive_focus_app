@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
-import '../widgets/insight_card.dart';
-import '../widgets/trend_row.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -11,13 +9,17 @@ class InsightsScreen extends StatefulWidget {
 }
 
 class _InsightsScreenState extends State<InsightsScreen> {
+  // Loading state
   bool _isLoading = true;
+
+  // Calculated analytics values
   int _totalSessions = 0;
   int _completedSessions = 0;
   int _totalDeepWorkMinutes = 0;
   double _averageWorkDuration = 0;
 
-  List<Map<String, dynamic>> _sessions = [];
+  // Full session list for update/delete UI
+  List<Map<String, dynamic>> _sessions = <Map<String, dynamic>>[];
 
   @override
   void initState() {
@@ -25,23 +27,30 @@ class _InsightsScreenState extends State<InsightsScreen> {
     _loadInsights();
   }
 
+  // Read sessions from SQLite and calculate summary values
   Future<void> _loadInsights() async {
     try {
-      final sessions =
+      final List<Map<String, dynamic>> sessions =
           await DatabaseHelper.instance.getAllFocusSessions();
 
       int completedSessions = 0;
-      int totalMinutes = 0;
+      int totalDeepWorkMinutes = 0;
 
-      for (final session in sessions) {
-        final int work = session['work_duration_minutes'] ?? 0;
-        final int completed = session['completed'] ?? 0;
+      for (final Map<String, dynamic> session in sessions) {
+        final int workDuration =
+            (session['work_duration_minutes'] as int?) ?? 0;
+        final int completed = (session['completed'] as int?) ?? 0;
 
-        totalMinutes += work;
-        if (completed == 1) completedSessions++;
+        totalDeepWorkMinutes += workDuration;
+
+        if (completed == 1) {
+          completedSessions++;
+        }
       }
 
-      final double avg = sessions.isEmpty ? 0.0 : totalMinutes / sessions.length;
+      final double averageWorkDuration = sessions.isEmpty
+          ? 0
+          : totalDeepWorkMinutes / sessions.length;
 
       if (!mounted) return;
 
@@ -49,56 +58,508 @@ class _InsightsScreenState extends State<InsightsScreen> {
         _sessions = sessions;
         _totalSessions = sessions.length;
         _completedSessions = completedSessions;
-        _totalDeepWorkMinutes = totalMinutes;
-        _averageWorkDuration = avg;
+        _totalDeepWorkMinutes = totalDeepWorkMinutes;
+        _averageWorkDuration = averageWorkDuration;
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() => _isLoading = false);
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load insights: $error'),
+        ),
+      );
     }
+  }
+
+  // Format total minutes into human-readable text
+  String _formatMinutes(int totalMinutes) {
+    final int hours = totalMinutes ~/ 60;
+    final int minutes = totalMinutes % 60;
+
+    if (hours == 0) {
+      return '${minutes}m';
+    }
+
+    return '${hours}h ${minutes}m';
+  }
+
+  // Convert stored ISO date into MM/DD/YYYY
+  String _formatSessionDate(String rawDate) {
+    try {
+      final DateTime parsedDate = DateTime.parse(rawDate);
+      final String month = parsedDate.month.toString().padLeft(2, '0');
+      final String day = parsedDate.day.toString().padLeft(2, '0');
+      final String year = parsedDate.year.toString();
+      return '$month/$day/$year';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  // Delete one session and reload insights
+  Future<void> _deleteSession(int id) async {
+    try {
+      await DatabaseHelper.instance.deleteFocusSession(id);
+      await _loadInsights();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session deleted successfully.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete session: $error'),
+        ),
+      );
+    }
+  }
+
+  // Confirm delete before actually removing row
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Session'),
+          content: const Text(
+            'Are you sure you want to delete this session?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return confirmed ?? false;
+  }
+
+  // Show edit dialog to update one saved session
+  Future<void> _showEditSessionDialog(Map<String, dynamic> session) async {
+    final TextEditingController nameController = TextEditingController(
+      text: (session['session_name'] as String?) ?? '',
+    );
+
+    int selectedWorkDuration =
+        (session['work_duration_minutes'] as int?) ?? 25;
+    int selectedBreakDuration =
+        (session['break_duration_minutes'] as int?) ?? 5;
+    bool completed = ((session['completed'] as int?) ?? 0) == 1;
+
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Session'),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      // Edit session name
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Session Name',
+                        ),
+                        validator: (String? value) {
+                          final String cleaned = value?.trim() ?? '';
+                          if (cleaned.isEmpty) {
+                            return 'Please enter a session name.';
+                          }
+                          if (cleaned.length < 3) {
+                            return 'Session name must be at least 3 characters.';
+                          }
+                          if (cleaned.length > 30) {
+                            return 'Session name must be 30 characters or less.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Edit work duration
+                      DropdownButtonFormField<int>(
+                        value: selectedWorkDuration,
+                        decoration: const InputDecoration(
+                          labelText: 'Work Duration',
+                        ),
+                        items: const <int>[25, 45, 60, 90]
+                            .map(
+                              (int value) => DropdownMenuItem<int>(
+                                value: value,
+                                child: Text('$value minutes'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (int? value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              selectedWorkDuration = value;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Edit break duration
+                      DropdownButtonFormField<int>(
+                        value: selectedBreakDuration,
+                        decoration: const InputDecoration(
+                          labelText: 'Break Duration',
+                        ),
+                        items: const <int>[5, 10, 15, 20]
+                            .map(
+                              (int value) => DropdownMenuItem<int>(
+                                value: value,
+                                child: Text('$value minutes'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (int? value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              selectedBreakDuration = value;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Edit completion flag
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: completed,
+                        title: const Text('Completed'),
+                        onChanged: (bool? value) {
+                          setDialogState(() {
+                            completed = value ?? false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    nameController.dispose();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final bool isValid =
+                        formKey.currentState?.validate() ?? false;
+
+                    if (!isValid) {
+                      return;
+                    }
+
+                    try {
+                      await DatabaseHelper.instance.updateFocusSession(
+                        session['id'] as int,
+                        <String, dynamic>{
+                          'session_name': nameController.text.trim(),
+                          'work_duration_minutes': selectedWorkDuration,
+                          'break_duration_minutes': selectedBreakDuration,
+                          'completed': completed ? 1 : 0,
+                        },
+                      );
+
+                      if (!mounted) return;
+
+                      Navigator.of(context).pop();
+                      nameController.dispose();
+
+                      await _loadInsights();
+
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Session updated successfully.'),
+                        ),
+                      );
+                    } catch (error) {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to update session: $error'),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator while DB data is being read
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SafeArea(
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              'Insights & Tracker',
-              style: Theme.of(context).textTheme.headlineMedium,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'Insights & Tracker',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Review your focus performance, productivity trends, and session habits.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 24),
+
+                // Summary cards
+                _InsightCard(
+                  title: 'Total Sessions',
+                  value: _totalSessions.toString(),
+                  subtitle: 'Saved focus sessions in the database',
+                  icon: Icons.check_circle_outline,
+                ),
+                const SizedBox(height: 16),
+                _InsightCard(
+                  title: 'Completed Sessions',
+                  value: _completedSessions.toString(),
+                  subtitle: 'Sessions marked as completed',
+                  icon: Icons.task_alt_outlined,
+                ),
+                const SizedBox(height: 16),
+                _InsightCard(
+                  title: 'Total Deep Work Time',
+                  value: _formatMinutes(_totalDeepWorkMinutes),
+                  subtitle: 'Total planned work duration across saved sessions',
+                  icon: Icons.timer_outlined,
+                ),
+                const SizedBox(height: 16),
+                _InsightCard(
+                  title: 'Average Work Duration',
+                  value: '${_averageWorkDuration.toStringAsFixed(1)} min',
+                  subtitle: 'Average work duration per saved session',
+                  icon: Icons.bar_chart_outlined,
+                ),
+                const SizedBox(height: 24),
+
+                // Visible session list with update + delete
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Saved Sessions',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Swipe left to delete. Tap edit to update. Long press also opens edit.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        if (_sessions.isEmpty)
+                          const Text('No saved sessions yet.')
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _sessions.length,
+                            separatorBuilder: (BuildContext context, int index) {
+                              return const SizedBox(height: 10);
+                            },
+                            itemBuilder: (BuildContext context, int index) {
+                              final Map<String, dynamic> session =
+                                  _sessions[index];
+                              final int sessionId = session['id'] as int;
+                              final String sessionName =
+                                  (session['session_name'] as String?) ??
+                                      'Untitled Session';
+                              final String mood =
+                                  (session['mood'] as String?) ?? 'Unknown';
+                              final String taskType =
+                                  (session['task_type'] as String?) ?? 'Unknown';
+                              final int workDuration =
+                                  (session['work_duration_minutes'] as int?) ??
+                                      0;
+                              final int breakDuration =
+                                  (session['break_duration_minutes'] as int?) ??
+                                      0;
+                              final String sessionDate =
+                                  (session['session_date'] as String?) ?? '';
+                              final bool completed =
+                                  ((session['completed'] as int?) ?? 0) == 1;
+
+                              return Dismissible(
+                                key: ValueKey<int>(sessionId),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade400,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                confirmDismiss: (DismissDirection direction) {
+                                  return _confirmDelete(context);
+                                },
+                                onDismissed: (DismissDirection direction) {
+                                  _deleteSession(sessionId);
+                                },
+                                child: Card(
+                                  margin: EdgeInsets.zero,
+                                  child: ListTile(
+                                    onLongPress: () {
+                                      _showEditSessionDialog(session);
+                                    },
+                                    title: Text(sessionName),
+                                    subtitle: Text(
+                                      '$mood • $taskType\n'
+                                      'Work: $workDuration min | Break: $breakDuration min\n'
+                                      'Date: ${_formatSessionDate(sessionDate)}\n'
+                                      'Completed: ${completed ? 'Yes' : 'No'}',
+                                    ),
+                                    isThreeLine: true,
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.edit_outlined),
+                                      onPressed: () {
+                                        _showEditSessionDialog(session);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Reload data from SQLite
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _loadInsights,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Refresh Insights'),
+                  ),
+                ),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-            const SizedBox(height: 20),
+class _InsightCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
 
-            InsightCard(
-              title: 'Total Sessions',
-              value: _totalSessions.toString(),
-              subtitle: 'Saved sessions',
-              icon: Icons.check_circle_outline,
+  const _InsightCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Row(
+          children: <Widget>[
+            CircleAvatar(
+              child: Icon(icon),
             ),
-
-            const SizedBox(height: 16),
-
-            InsightCard(
-              title: 'Completed Sessions',
-              value: _completedSessions.toString(),
-              subtitle: 'Finished sessions',
-              icon: Icons.star_outline,
-            ),
-
-            const SizedBox(height: 16),
-
-            InsightCard(
-              title: 'Total Focus Time',
-              value: '$_totalDeepWorkMinutes min',
-              subtitle: 'Total work duration',
-              icon: Icons.timer,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

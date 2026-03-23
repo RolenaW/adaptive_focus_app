@@ -2,28 +2,38 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
-class ActiveSessionScreen extends StatefulWidget { //creates ActiveScreenSession class, stateful used
-  final int? sessionId; //tells screen which db row to update
-  const ActiveSessionScreen({super.key, this.sessionId,});
+class ActiveSessionScreen extends StatefulWidget {
+  final int? sessionId;
+
+  const ActiveSessionScreen({
+    super.key,
+    this.sessionId,
+  });
 
   @override
   State<ActiveSessionScreen> createState() => _ActiveSessionScreenState();
 }
 
 class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
-  Timer? _timer; //setting up the timer
+  Timer? _timer;
 
-  int _remainingSeconds = 25 * 60; //tracks how much time left
-  bool _isRunning = false; //tracks whether time is active
-  bool _isBreak = false; //track if in break or focus mode
+  // Default Pomodoro time
+  int _remainingSeconds = 25 * 60;
+
+  // Track whether timer is active
+  bool _isRunning = false;
+
+  // Track whether user is on break or focus session
+  bool _isBreak = false;
 
   @override
-  void dispose() { 
+  void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 
-  Future<void> _markSessionCompleted() async { //mark saved session as completed
+  // Mark the linked saved session as completed
+  Future<void> _markSessionCompleted() async {
     if (widget.sessionId == null) {
       return;
     }
@@ -31,11 +41,9 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     try {
       await DatabaseHelper.instance.updateFocusSession(
         widget.sessionId!,
-        <String, dynamic>{
-          'completed': 1,
-        },
+        <String, dynamic>{'completed': 1},
       );
-    } catch (error) { //prevent crash
+    } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,7 +54,8 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     }
   }
 
-  void _startTimer() { //runs every second
+  // Start timer if not already running
+  void _startTimer() {
     if (_isRunning) return;
 
     setState(() {
@@ -54,22 +63,24 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) { //added to cancel timer if widget is removed
+      if (!mounted) {
         timer.cancel();
         return;
       }
+
       if (_remainingSeconds > 0) {
         setState(() {
           _remainingSeconds--;
         });
       } else {
-        timer.cancel(); //cancel before switching
+        timer.cancel();
         _switchMode();
       }
     });
   }
 
-  void _pauseTimer() { //stops timer but keeps remaining time
+  // Pause timer
+  void _pauseTimer() {
     _timer?.cancel();
 
     setState(() {
@@ -77,7 +88,8 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     });
   }
 
-  void _resetTimer() { //resets everything
+  // Reset timer back to focus mode defaults
+  void _resetTimer() {
     _timer?.cancel();
 
     setState(() {
@@ -86,6 +98,8 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
       _remainingSeconds = 25 * 60;
     });
   }
+
+  // Exit screen and stop timer
   Future<void> _exitSession() async {
     _timer?.cancel();
 
@@ -94,21 +108,23 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     Navigator.of(context).pop();
   }
 
-  Future<void> _switchMode() async { //Pomodoro: switching b/w focus and break
-    final bool wasFocusSession = !_isBreak; //before switching, lets us check if we're currentlly in focus block
+  // Switch between focus and break
+  Future<void> _switchMode() async {
+    final bool wasFocusSession = !_isBreak;
 
     _timer?.cancel();
 
+    // Only mark session completed when a focus block ends
     if (wasFocusSession) {
-      await _markSessionCompleted(); //update databasse when focus block finishes
+      await _markSessionCompleted();
     }
 
     if (!mounted) return;
 
-    setState(() { //switch timer to next mode
-      _isRunning = false; //finishing a focus session
+    setState(() {
+      _isRunning = false;
       _isBreak = !_isBreak;
-      _remainingSeconds = _isBreak ? 5 * 60 : 25 * 60; //swicth duration
+      _remainingSeconds = _isBreak ? 5 * 60 : 25 * 60;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -118,7 +134,8 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     );
   }
 
-  String _formatTime(int seconds) { //formats time to be readable
+  // Convert seconds into MM:SS
+  String _formatTime(int seconds) {
     final int minutes = seconds ~/ 60;
     final int secs = seconds % 60;
 
@@ -141,7 +158,9 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 20),
-                TweenAnimationBuilder<double>( //scale animation
+
+                // Simple timer animation
+                TweenAnimationBuilder<double>(
                   duration: const Duration(milliseconds: 300),
                   tween: Tween<double>(begin: 0.9, end: 1.0),
                   builder: (context, value, child) {
@@ -160,31 +179,32 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // Buttons
+                // Main timer controls
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton.icon( //start: disbaled if running
+                    ElevatedButton.icon(
                       onPressed: _isRunning ? null : _startTimer,
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Start'),
                     ),
                     const SizedBox(width: 10),
-                    ElevatedButton.icon( //pause: only works if running
+                    ElevatedButton.icon(
                       onPressed: _isRunning ? _pauseTimer : null,
                       icon: const Icon(Icons.pause),
                       label: const Text('Pause'),
                     ),
                     const SizedBox(width: 10),
-                    ElevatedButton.icon( //reset: always avaliable
+                    ElevatedButton.icon(
                       onPressed: _resetTimer,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Reset'),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
 
-                const SizedBox(height: 16), //exit session
+                // Exit session button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -196,8 +216,9 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
 
                 const SizedBox(height: 30),
 
+                // Status text
                 Text(
-                  _isRunning //gives user status updates
+                  _isRunning
                       ? 'Session in progress...'
                       : 'Press Start to begin',
                   style: TextStyle(

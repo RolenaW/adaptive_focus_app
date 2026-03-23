@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
-class SoundscapeScreen extends StatefulWidget { //SoundScapeScreen class created. Stateful used
+class SoundscapeScreen extends StatefulWidget {
   const SoundscapeScreen({super.key});
 
   @override
@@ -9,25 +9,30 @@ class SoundscapeScreen extends StatefulWidget { //SoundScapeScreen class created
 }
 
 class _SoundscapeScreenState extends State<SoundscapeScreen> {
-  bool _rainEnabled = true; //sound layer state variables
+  // Current sound toggles
+  bool _rainEnabled = true;
   bool _cafeEnabled = false;
   bool _whiteNoiseEnabled = true;
   bool _natureEnabled = false;
   bool _instrumentalEnabled = false;
 
-  double _masterVolume = 0.5; //stores volume
+  // Master volume from 0.0 to 1.0
+  double _masterVolume = 0.5;
 
-  int _getEnabledSoundCount() { //counts how many sound layers are currently turned on
+  // Count enabled layers for summary
+  int _getEnabledSoundCount() {
     int enabledCount = 0;
 
     if (_rainEnabled) enabledCount++;
     if (_cafeEnabled) enabledCount++;
     if (_whiteNoiseEnabled) enabledCount++;
     if (_natureEnabled) enabledCount++;
-    if (_instrumentalEnabled) enabledCount++; //checks boolean and adds 1 for each enable sound ^
+    if (_instrumentalEnabled) enabledCount++;
 
     return enabledCount;
   }
+
+  // Save a sound preset into SQLite
   Future<void> _showSavePresetDialog() async {
     final TextEditingController presetNameController =
         TextEditingController();
@@ -110,7 +115,7 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int enabledSoundCount = _getEnabledSoundCount(); //calculates active sound layers
+    final int enabledSoundCount = _getEnabledSoundCount();
 
     return SafeArea(
       child: Center(
@@ -124,33 +129,41 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Text( //screen title
+                    Text(
                       'Soundscape Studio',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 8),
-                    Text( //description
+                    Text(
                       'Customize your focus audio environment by enabling sound layers and adjusting volume.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 24),
-                    SwitchListTile( //creates toggle row for one sound layer (same for rest below)
-                      value: _rainEnabled, //tells whether switch is on or off
-                      title: const Text('Rain'), //title
-                      subtitle: const Text('Soft rain ambience for calm focus'), //description
-                      secondary: const Icon(Icons.water_drop_outlined), //icon
-                      onChanged: (bool value) { //runs when switch is flipped
+
+                    // Rain toggle
+                    SwitchListTile(
+                      value: _rainEnabled,
+                      title: const Text('Rain'),
+                      subtitle: const Text(
+                        'Soft rain ambience for calm focus',
+                      ),
+                      secondary: const Icon(Icons.water_drop_outlined),
+                      onChanged: (bool value) {
                         setState(() {
                           _rainEnabled = value;
                         });
                       },
                     ),
-                    SwitchListTile( 
+
+                    // Cafe toggle
+                    SwitchListTile(
                       value: _cafeEnabled,
                       title: const Text('Café'),
-                      subtitle: const Text('Background café chatter and room tone'),
+                      subtitle: const Text(
+                        'Background café chatter and room tone',
+                      ),
                       secondary: const Icon(Icons.local_cafe_outlined),
                       onChanged: (bool value) {
                         setState(() {
@@ -158,10 +171,14 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                         });
                       },
                     ),
-                    SwitchListTile( 
+
+                    // White noise toggle
+                    SwitchListTile(
                       value: _whiteNoiseEnabled,
                       title: const Text('White Noise'),
-                      subtitle: const Text('Steady masking noise for fewer distractions'),
+                      subtitle: const Text(
+                        'Steady masking noise for fewer distractions',
+                      ),
                       secondary: const Icon(Icons.blur_on_outlined),
                       onChanged: (bool value) {
                         setState(() {
@@ -169,7 +186,9 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                         });
                       },
                     ),
-                    SwitchListTile( 
+
+                    // Nature toggle
+                    SwitchListTile(
                       value: _natureEnabled,
                       title: const Text('Nature'),
                       subtitle: const Text('Forest and outdoor ambience'),
@@ -180,10 +199,14 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                         });
                       },
                     ),
+
+                    // Instrumental toggle
                     SwitchListTile(
                       value: _instrumentalEnabled,
                       title: const Text('Instrumental'),
-                      subtitle: const Text('Gentle background instrumental sound'),
+                      subtitle: const Text(
+                        'Gentle background instrumental sound',
+                      ),
                       secondary: const Icon(Icons.music_note_outlined),
                       onChanged: (bool value) {
                         setState(() {
@@ -191,49 +214,64 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                         });
                       },
                     ),
+
                     const SizedBox(height: 20),
+
+                    // Volume slider label
                     Text(
-                      'Master Volume: ${(_masterVolume * 100).round()}%', //converts decimal volume to percentage
+                      'Master Volume: ${(_masterVolume * 100).round()}%',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    Slider( //slider to adjust volume
+
+                    // Volume slider
+                    Slider(
                       value: _masterVolume,
                       min: 0.0,
                       max: 1.0,
                       divisions: 10,
-                      label: '${(_masterVolume * 100).round()}%', //shows as percentage on slider
-                      onChanged: (double value) { //updates slider
+                      label: '${(_masterVolume * 100).round()}%',
+                      onChanged: (double value) {
                         setState(() {
                           _masterVolume = value;
                         });
                       },
                     ),
+
                     const SizedBox(height: 12),
-                    AnimatedContainer( //smooth animation
+
+                    // Summary box
+                    AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text( //shows layers and volume level
+                          Text(
                             'Current Mix Summary',
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8),
-                          Text('Enabled layers: $enabledSoundCount'), //^
-                          Text('Volume level: ${(_masterVolume * 100).round()}%'),
+                          Text('Enabled layers: $enabledSoundCount'),
+                          Text(
+                            'Volume level: ${(_masterVolume * 100).round()}%',
+                          ),
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 20),
-                    SizedBox( //save button
+
+                    // Save preset button
+                    SizedBox(
                       height: 52,
                       child: ElevatedButton.icon(
-                        onPressed: _showSavePresetDialog, //saves
+                        onPressed: _showSavePresetDialog,
                         icon: const Icon(Icons.save_outlined),
                         label: const Text('Save Preset'),
                       ),

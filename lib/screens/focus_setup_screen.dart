@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
-import 'active_session_screen.dart';
 import '../data/preference_helper.dart';
-import '../models/focus_session.dart';
-import '../widgets/summary_row.dart';
-
-// 🔥 NEW IMPORT (AI)
-import '../services/focus_ai_service.dart';
+import '../data/ai_focus_dj_helper.dart';
+import 'active_session_screen.dart';
 
 class FocusSetupScreen extends StatefulWidget {
   const FocusSetupScreen({super.key});
@@ -16,10 +12,14 @@ class FocusSetupScreen extends StatefulWidget {
 }
 
 class _FocusSetupScreenState extends State<FocusSetupScreen> {
+  // Form key for validation
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // Text controller for session name field
   final TextEditingController _sessionNameController = TextEditingController();
 
-  final List<String> _moodOptions = [
+  // Dropdown choices
+  final List<String> _moodOptions = <String>[
     'Calm',
     'Focused',
     'Tired',
@@ -27,7 +27,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     'Motivated',
   ];
 
-  final List<String> _taskTypeOptions = [
+  final List<String> _taskTypeOptions = <String>[
     'Studying',
     'Writing',
     'Coding',
@@ -35,17 +35,22 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     'Planning',
   ];
 
-  final List<int> _workDurationOptions = [25, 45, 60, 90];
-  final List<int> _breakDurationOptions = [5, 10, 15, 20];
+  final List<int> _workDurationOptions = <int>[25, 45, 60, 90];
+  final List<int> _breakDurationOptions = <int>[5, 10, 15, 20];
 
+  // Current selected values
   String? _selectedMood;
   String? _selectedTaskType;
   int _selectedWorkDuration = 25;
   int _selectedBreakDuration = 5;
   double _energyLevel = 5.0;
   bool _saveAsBlueprint = false;
-  DateTime? _selectedStartDate;
   bool _darkModeEnabled = false;
+  DateTime? _selectedStartDate;
+
+  // AI recommendation state
+  AiFocusDjRecommendation? _aiRecommendation;
+  bool _aiApplied = false;
 
   @override
   void initState() {
@@ -53,6 +58,13 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     _loadPreferences();
   }
 
+  @override
+  void dispose() {
+    _sessionNameController.dispose();
+    super.dispose();
+  }
+
+  // Load saved preferences into form
   Future<void> _loadPreferences() async {
     final bool savedDarkMode = await PreferencesHelper.getDarkMode();
     final int savedWorkDuration =
@@ -69,12 +81,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _sessionNameController.dispose();
-    super.dispose();
-  }
-
+  // Open date picker
   Future<void> _pickStartDate() async {
     final DateTime now = DateTime.now();
 
@@ -83,6 +90,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       initialDate: _selectedStartDate ?? now,
       firstDate: now.subtract(const Duration(days: 30)),
       lastDate: now.add(const Duration(days: 365)),
+      helpText: 'Select Session Date',
     );
 
     if (pickedDate != null) {
@@ -92,6 +100,85 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     }
   }
 
+  // Generate rule-based AI recommendation
+  void _generateAiRecommendation() {
+    final AiFocusDjRecommendation recommendation =
+        AiFocusDjHelper.getRecommendation(
+      mood: _selectedMood,
+      taskType: _selectedTaskType,
+      energyLevel: _energyLevel.round(),
+    );
+
+    setState(() {
+      _aiRecommendation = recommendation;
+      _aiApplied = false;
+    });
+  }
+
+  // Apply AI-recommended work and break durations
+  void _applyAiRecommendation() {
+    if (_aiRecommendation == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedWorkDuration = _aiRecommendation!.recommendedWorkDuration;
+      _selectedBreakDuration = _aiRecommendation!.recommendedBreakDuration;
+      _aiApplied = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('AI Focus DJ recommendation applied.'),
+      ),
+    );
+  }
+
+  // Build readable sound list for AI explanation
+  String _buildSoundMixLabel(AiFocusDjRecommendation recommendation) {
+    final List<String> enabledSounds = <String>[];
+
+    if (recommendation.rainEnabled) enabledSounds.add('Rain');
+    if (recommendation.cafeEnabled) enabledSounds.add('Café');
+    if (recommendation.whiteNoiseEnabled) enabledSounds.add('White Noise');
+    if (recommendation.natureEnabled) enabledSounds.add('Nature');
+    if (recommendation.instrumentalEnabled) enabledSounds.add('Instrumental');
+
+    if (enabledSounds.isEmpty) {
+      return 'No sound layers selected';
+    }
+
+    return enabledSounds.join(', ');
+  }
+
+  // Validate session name
+  String? _validateSessionName(String? value) {
+    final String cleanedValue = value?.trim() ?? '';
+
+    if (cleanedValue.isEmpty) {
+      return 'Please enter a session name.';
+    }
+
+    if (cleanedValue.length < 3) {
+      return 'Session name must be at least 3 characters.';
+    }
+
+    if (cleanedValue.length > 30) {
+      return 'Session name must be 30 characters or less.';
+    }
+
+    return null;
+  }
+
+  // Reusable dropdown validator
+  String? _validateRequiredSelection(String? value, String fieldName) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please select a $fieldName.';
+    }
+    return null;
+  }
+
+  // Save session into SQLite and open active session screen
   Future<void> _submitForm() async {
     final bool isFormValid = _formKey.currentState?.validate() ?? false;
 
@@ -113,24 +200,24 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       return;
     }
 
-    final String cleanedSessionName =
-        _sessionNameController.text.trim();
+    final String cleanedSessionName = _sessionNameController.text.trim();
 
-    final FocusSession session = FocusSession(
-      sessionName: cleanedSessionName,
-      mood: _selectedMood!,
-      taskType: _selectedTaskType!,
-      energyLevel: _energyLevel.round(),
-      workDuration: _selectedWorkDuration,
-      breakDuration: _selectedBreakDuration,
-      sessionDate: _selectedStartDate!.toIso8601String(),
-      completed: false,
-      createdAt: DateTime.now().toIso8601String(),
-    );
+    final Map<String, dynamic> sessionData = <String, dynamic>{
+      'session_name': cleanedSessionName,
+      'mood': _selectedMood!,
+      'task_type': _selectedTaskType!,
+      'energy_level': _energyLevel.round(),
+      'work_duration_minutes': _selectedWorkDuration,
+      'break_duration_minutes': _selectedBreakDuration,
+      'session_date': _selectedStartDate!.toIso8601String(),
+      'completed': 0,
+      'created_at': DateTime.now().toIso8601String(),
+    };
 
     try {
+      // Insert session and get new row ID
       final int insertedId =
-          await DatabaseHelper.instance.createFocusSession(session.toMap());
+          await DatabaseHelper.instance.createFocusSession(sessionData);
 
       if (!mounted) return;
 
@@ -162,11 +249,11 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
 
       if (!mounted) return;
 
+      // Open active session tied to the saved database row
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              ActiveSessionScreen(sessionId: insertedId),
+          builder: (context) => ActiveSessionScreen(sessionId: insertedId),
         ),
       );
     } catch (error) {
@@ -180,138 +267,311 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     }
   }
 
-  // 🔥 NEW AI FUNCTION
-  void _runAIRecommendation() {
-    if (_selectedMood == null || _selectedTaskType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select mood and task first')),
-      );
-      return;
-    }
-
-    final result = FocusAIService.generateRecommendation(
-      mood: _selectedMood!,
-      task: _selectedTaskType!,
-      energy: _energyLevel.round(),
-    );
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('AI Focus Plan'),
-        content: Text(
-          'Session Type: ${result['sessionType']}\n\n'
-          'Sound Mix:\n'
-          '${result['rain'] ? '✔ Rain\n' : ''}'
-          '${result['cafe'] ? '✔ Café\n' : ''}'
-          '${result['whiteNoise'] ? '✔ White Noise\n' : ''}'
-          '${result['nature'] ? '✔ Nature\n' : ''}'
-          '${result['instrumental'] ? '✔ Instrumental\n' : ''}\n'
-          'Volume: ${(result['volume'] * 100).round()}%',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String? _validateSessionName(String? value) {
-    final String cleanedValue = value?.trim() ?? '';
-
-    if (cleanedValue.isEmpty) {
-      return 'Please enter a session name.';
-    }
-
-    if (cleanedValue.length < 3) {
-      return 'Session name must be at least 3 characters.';
-    }
-
-    if (cleanedValue.length > 30) {
-      return 'Session name must be 30 characters or less.';
-    }
-
-    return null;
-  }
-
-  String? _validateRequiredSelection(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Please select a $fieldName.';
-    }
-    return null;
+  // Format date for screen display
+  String _formatDate(DateTime date) {
+    final String month = date.month.toString().padLeft(2, '0');
+    final String day = date.day.toString().padLeft(2, '0');
+    final String year = date.year.toString();
+    return '$month/$day/$year';
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final bool useWideLayout = constraints.maxWidth >= 700;
-
-          return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Form(
-                  key: _formKey,
+            child: Form(
+              key: _formKey,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Text(
                         'Focus Session Setup',
-                        style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Set your mood, task type, energy level, and timing before starting a session.',
-                        style: Theme.of(context).textTheme.bodyLarge,
                         textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Session name input
+                      TextFormField(
+                        controller: _sessionNameController,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Session Name',
+                          hintText: 'Example: Deep Study Block',
+                          prefixIcon: Icon(Icons.edit_note_rounded),
+                        ),
+                        validator: _validateSessionName,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Mood dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedMood,
+                        decoration: const InputDecoration(
+                          labelText: 'Mood',
+                          prefixIcon: Icon(Icons.mood_rounded),
+                        ),
+                        items: _moodOptions.map((String mood) {
+                          return DropdownMenuItem<String>(
+                            value: mood,
+                            child: Text(mood),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          setState(() {
+                            _selectedMood = value;
+                          });
+                        },
+                        validator: (String? value) =>
+                            _validateRequiredSelection(value, 'mood'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Task type dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedTaskType,
+                        decoration: const InputDecoration(
+                          labelText: 'Task Type',
+                          prefixIcon: Icon(Icons.task_alt_rounded),
+                        ),
+                        items: _taskTypeOptions.map((String taskType) {
+                          return DropdownMenuItem<String>(
+                            value: taskType,
+                            child: Text(taskType),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          setState(() {
+                            _selectedTaskType = value;
+                          });
+                        },
+                        validator: (String? value) =>
+                            _validateRequiredSelection(value, 'task type'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Date picker
+                      InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Session Date',
+                          prefixIcon: Icon(Icons.calendar_today_rounded),
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            _selectedStartDate == null
+                                ? 'Select a date'
+                                : _formatDate(_selectedStartDate!),
+                          ),
+                          trailing: const Icon(Icons.arrow_drop_down),
+                          onTap: _pickStartDate,
+                        ),
                       ),
                       const SizedBox(height: 20),
 
+                      // Energy slider
+                      Text(
+                        'Energy Level: ${_energyLevel.round()}/10',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Slider(
+                        value: _energyLevel,
+                        min: 1,
+                        max: 10,
+                        divisions: 9,
+                        label: _energyLevel.round().toString(),
+                        onChanged: (double value) {
+                          setState(() {
+                            _energyLevel = value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // AI suggestion card
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: useWideLayout
-                              ? Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Expanded(child: _buildLeftColumn(context)),
-                                    const SizedBox(width: 16),
-                                    Expanded(child: _buildRightColumn(context)),
-                                  ],
-                                )
-                              : Column(
-                                  children: <Widget>[
-                                    _buildLeftColumn(context),
-                                    const SizedBox(height: 16),
-                                    _buildRightColumn(context),
-                                  ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              Text(
+                                'AI Focus DJ',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Generate a suggested sound mix and session timing based on mood, task type, and energy.',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: _generateAiRecommendation,
+                                icon: const Icon(Icons.auto_awesome),
+                                label: const Text('Generate AI Suggestion'),
+                              ),
+                              if (_aiRecommendation != null) ...[
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Suggested Mix: ${_aiRecommendation!.mixName}',
+                                  style: Theme.of(context).textTheme.titleMedium,
                                 ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Sound Layers: ${_buildSoundMixLabel(_aiRecommendation!)}',
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Recommended Work: ${_aiRecommendation!.recommendedWorkDuration} minutes',
+                                ),
+                                Text(
+                                  'Recommended Break: ${_aiRecommendation!.recommendedBreakDuration} minutes',
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Why: ${_aiRecommendation!.explanation}',
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  onPressed: _applyAiRecommendation,
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  label: const Text('Apply Suggestion'),
+                                ),
+                                if (_aiApplied) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Suggestion applied to this session.',
+                                    style: TextStyle(
+                                      color: Colors.green.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ],
+                          ),
                         ),
                       ),
 
-                      const SizedBox(height: 20),
-                      _buildSummaryCard(context),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
-                      // 🔥 AI BUTTON (ONLY UI ADDITION)
-                      SizedBox(
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          onPressed: _runAIRecommendation,
-                          icon: const Icon(Icons.auto_awesome),
-                          label: const Text('Generate AI Focus Plan'),
+                      // Work duration dropdown
+                      DropdownButtonFormField<int>(
+                        value: _selectedWorkDuration,
+                        decoration: const InputDecoration(
+                          labelText: 'Work Duration (minutes)',
+                          prefixIcon: Icon(Icons.timer_rounded),
                         ),
+                        items: _workDurationOptions.map((int minutes) {
+                          return DropdownMenuItem<int>(
+                            value: minutes,
+                            child: Text('$minutes minutes'),
+                          );
+                        }).toList(),
+                        onChanged: (int? value) async {
+                          if (value != null) {
+                            await PreferencesHelper.setDefaultWorkDuration(
+                              value,
+                            );
+
+                            if (!mounted) return;
+
+                            setState(() {
+                              _selectedWorkDuration = value;
+                            });
+                          }
+                        },
                       ),
+                      const SizedBox(height: 16),
 
-                      const SizedBox(height: 12),
+                      // Break duration dropdown
+                      DropdownButtonFormField<int>(
+                        value: _selectedBreakDuration,
+                        decoration: const InputDecoration(
+                          labelText: 'Break Duration (minutes)',
+                          prefixIcon: Icon(Icons.free_breakfast_rounded),
+                        ),
+                        items: _breakDurationOptions.map((int minutes) {
+                          return DropdownMenuItem<int>(
+                            value: minutes,
+                            child: Text('$minutes minutes'),
+                          );
+                        }).toList(),
+                        onChanged: (int? value) async {
+                          if (value != null) {
+                            await PreferencesHelper.setDefaultBreakDuration(
+                              value,
+                            );
 
+                            if (!mounted) return;
+
+                            setState(() {
+                              _selectedBreakDuration = value;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Dark mode switch
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _darkModeEnabled,
+                        title: const Text('Enable dark mode'),
+                        subtitle: const Text(
+                          'Save app theme preference locally',
+                        ),
+                        onChanged: (bool value) async {
+                          await PreferencesHelper.setDarkMode(value);
+
+                          if (!mounted) return;
+
+                          setState(() {
+                            _darkModeEnabled = value;
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Dark mode preference saved. Restart app to see full theme change.',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Blueprint checkbox
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _saveAsBlueprint,
+                        title: const Text('Save as reusable blueprint'),
+                        subtitle: const Text(
+                          'Store this setup for future sessions',
+                        ),
+                        onChanged: (bool? value) {
+                          setState(() {
+                            _saveAsBlueprint = value ?? false;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Submit button
                       SizedBox(
                         height: 52,
                         child: ElevatedButton.icon(
@@ -325,93 +585,9 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildLeftColumn(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        TextFormField(
-          controller: _sessionNameController,
-          decoration: const InputDecoration(labelText: 'Session Name'),
-          validator: _validateSessionName,
-        ),
-        const SizedBox(height: 16),
-
-        DropdownButtonFormField<String>(
-          value: _selectedMood,
-          decoration: const InputDecoration(labelText: 'Mood'),
-          items: _moodOptions
-              .map((mood) => DropdownMenuItem(value: mood, child: Text(mood)))
-              .toList(),
-          onChanged: (value) => setState(() => _selectedMood = value),
-          validator: (value) => _validateRequiredSelection(value, 'mood'),
-        ),
-        const SizedBox(height: 16),
-
-        DropdownButtonFormField<String>(
-          value: _selectedTaskType,
-          decoration: const InputDecoration(labelText: 'Task Type'),
-          items: _taskTypeOptions
-              .map((task) => DropdownMenuItem(value: task, child: Text(task)))
-              .toList(),
-          onChanged: (value) => setState(() => _selectedTaskType = value),
-          validator: (value) => _validateRequiredSelection(value, 'task type'),
-        ),
-        const SizedBox(height: 16),
-
-        ListTile(
-          title: Text(
-            _selectedStartDate == null
-                ? 'Select a date'
-                : _formatDate(_selectedStartDate!),
           ),
-          trailing: const Icon(Icons.calendar_today),
-          onTap: _pickStartDate,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRightColumn(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Text('Energy Level: ${_energyLevel.round()}/10'),
-        Slider(
-          value: _energyLevel,
-          min: 1,
-          max: 10,
-          divisions: 9,
-          onChanged: (value) => setState(() => _energyLevel = value),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryCard(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            SummaryRow(
-              label: 'Session Name',
-              value: _sessionNameController.text,
-            ),
-            SummaryRow(
-              label: 'Mood',
-              value: _selectedMood ?? 'Not selected',
-            ),
-          ],
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
   }
 }
