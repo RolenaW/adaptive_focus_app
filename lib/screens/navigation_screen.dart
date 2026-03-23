@@ -2,26 +2,26 @@ import 'package:flutter/material.dart';
 import 'focus_setup_screen.dart';
 import 'active_session_screen.dart';
 import 'soundscape_screen.dart';
-import 'insights_screen.dart';
+import 'insights_screen.dart'; //imports
 
 class NavigationScreen extends StatefulWidget { //NavigationScreen class created. StatefulWidget used.
-  const NavigationScreen({super.key});
+  const NavigationScreen({super.key}); //screen after welcome and let's you switch bewtween tabs
 
   @override
   State<NavigationScreen> createState() => _NavigationScreenState();
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  int _selectedIndex = 0; //stores each tab
+  int _selectedIndex = 0; //stores each tab, tracks which is selected
 
   final List<Widget> _screens = const <Widget>[ //list that stores the pages shown for each tab
-    FocusSetupScreen(),
+    FocusSetupScreen(), //index 0 ^
     ActiveSessionScreen(),
     SoundscapeScreen(),
     InsightsScreen(),
   ];
 
-  final List<NavigationDestination> _destinations = //bottom naviagtion items
+  final List<NavigationDestination> _destinations = //bottom naviagtion items, the icons and labels
       const <NavigationDestination>[
     NavigationDestination(
       icon: Icon(Icons.tune_outlined),
@@ -51,7 +51,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
   }
 
-  String _getScreenTitle() { //Chnaged: Dynamic update for AppBar title 
+  String _getScreenTitle() { //Chnaged: Dynamic update Appbar title for different tabs
     switch (_selectedIndex) {
       case 0:
         return 'Focus Setup';
@@ -69,20 +69,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: AppBar( //changing depending on tab
         title: Text(_getScreenTitle()),
         centerTitle: true,
       ),
-      body: AnimatedSwitcher(
+      body: AnimatedSwitcher( //smooth transitions/animation
         duration: const Duration(milliseconds: 250),
-        child: KeyedSubtree(
+        child: KeyedSubtree( //key forces flutter to treat each screen as different widget
           key: ValueKey<int>(_selectedIndex),
-          child: _screens[_selectedIndex],
+          child: _screens[_selectedIndex], //shows the current screen
         ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
+        onDestinationSelected: _onItemTapped, //when tab pressed, update index
         destinations: _destinations,
       ),
     );

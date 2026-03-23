@@ -1,34 +1,28 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
-class InsightsScreen extends StatefulWidget {
+class InsightsScreen extends StatefulWidget { //InsightsScreen class created. state ful used
   const InsightsScreen({super.key});
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
-
 class _InsightsScreenState extends State<InsightsScreen> {
-  // Loading state
-  bool _isLoading = true;
+  bool _isLoading = true; //tracks whether screen is still loading database data
+  int _totalSessions = 0; //stores focus sessions
+  int _completedSessions = 0; //counts completed rows
+  int _totalDeepWorkMinutes = 0; //adds work duration
+  double _averageWorkDuration = 0; //calculates average work duration
 
-  // Calculated analytics values
-  int _totalSessions = 0;
-  int _completedSessions = 0;
-  int _totalDeepWorkMinutes = 0;
-  double _averageWorkDuration = 0;
+  List<Map<String, dynamic>> _sessions = <Map<String, dynamic>>[]; //full session list for update/delete UI
 
-  // Full session list for update/delete UI
-  List<Map<String, dynamic>> _sessions = <Map<String, dynamic>>[];
-
-  @override
+  @override //loading data
   void initState() {
     super.initState();
     _loadInsights();
   }
 
-  // Read sessions from SQLite and calculate summary values
-  Future<void> _loadInsights() async {
+  Future<void> _loadInsights() async { //read sessions from SQLite and calculate summary values
     try {
       final List<Map<String, dynamic>> sessions =
           await DatabaseHelper.instance.getAllFocusSessions();
@@ -48,10 +42,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
         }
       }
 
-      final double averageWorkDuration = sessions.isEmpty
-          ? 0
-          : totalDeepWorkMinutes / sessions.length;
-
+      final double averageWorkDuration = sessions.isEmpty ? 0 : totalDeepWorkMinutes / sessions.length;
+      //calculate average
       if (!mounted) return;
 
       setState(() {
@@ -71,14 +63,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to load insights: $error'),
+          content: Text('Failed to load insights: $error'), //error mesage
         ),
       );
     }
   }
 
-  // Format total minutes into human-readable text
-  String _formatMinutes(int totalMinutes) {
+  String _formatMinutes(int totalMinutes) { //format total minutes into human-readable text
     final int hours = totalMinutes ~/ 60;
     final int minutes = totalMinutes % 60;
 
@@ -89,8 +80,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return '${hours}h ${minutes}m';
   }
 
-  // Convert stored ISO date into MM/DD/YYYY
-  String _formatSessionDate(String rawDate) {
+  String _formatSessionDate(String rawDate) { // Convert ISO date → XX/XX/XXXX
     try {
       final DateTime parsedDate = DateTime.parse(rawDate);
       final String month = parsedDate.month.toString().padLeft(2, '0');
@@ -102,8 +92,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
   }
 
-  // Delete one session and reload insights
-  Future<void> _deleteSession(int id) async {
+  Future<void> _deleteSession(int id) async { //delete one session and reload insights
     try {
       await DatabaseHelper.instance.deleteFocusSession(id);
       await _loadInsights();
@@ -126,16 +115,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
   }
 
-  // Confirm delete before actually removing row
-  Future<bool> _confirmDelete(BuildContext context) async {
+  Future<bool> _confirmDelete(BuildContext context) async { //confirm delete before actually removing row
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Delete Session'),
           content: const Text(
-            'Are you sure you want to delete this session?',
-          ),
+            'Are you sure you want to delete this session?',), //ask before delete
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -157,9 +144,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return confirmed ?? false;
   }
 
-  // Show edit dialog to update one saved session
-  Future<void> _showEditSessionDialog(Map<String, dynamic> session) async {
-    final TextEditingController nameController = TextEditingController(
+  Future<void> _showEditSessionDialog(Map<String, dynamic> session) async { //show edit dialog to update one saved session
+    final TextEditingController nameController = TextEditingController( //pre-fill fields with current values
       text: (session['session_name'] as String?) ?? '',
     );
 
@@ -184,8 +170,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      // Edit session name
-                      TextFormField(
+                      TextFormField( //edit session name
                         controller: nameController,
                         decoration: const InputDecoration(
                           labelText: 'Session Name',
@@ -206,8 +191,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Edit work duration
-                      DropdownButtonFormField<int>(
+                      DropdownButtonFormField<int>( //edit work duration
                         value: selectedWorkDuration,
                         decoration: const InputDecoration(
                           labelText: 'Work Duration',
@@ -230,8 +214,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Edit break duration
-                      DropdownButtonFormField<int>(
+                      DropdownButtonFormField<int>( //edit break duration
                         value: selectedBreakDuration,
                         decoration: const InputDecoration(
                           labelText: 'Break Duration',
@@ -254,8 +237,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Edit completion flag
-                      CheckboxListTile(
+                      CheckboxListTile( //edit completion flag toggle
                         contentPadding: EdgeInsets.zero,
                         value: completed,
                         title: const Text('Completed'),
@@ -302,7 +284,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       Navigator.of(context).pop();
                       nameController.dispose();
 
-                      await _loadInsights();
+                      await _loadInsights(); //refresh UI
 
                       if (!mounted) return;
 
@@ -333,7 +315,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Show loading indicator while DB data is being read
+    // Show loading indicator while db data is being read
     if (_isLoading) {
       return const SafeArea(
         child: Center(
@@ -516,7 +498,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 }
 
-class _InsightCard extends StatelessWidget {
+class _InsightCard extends StatelessWidget { //custom widget
   final String title;
   final String value;
   final String subtitle;

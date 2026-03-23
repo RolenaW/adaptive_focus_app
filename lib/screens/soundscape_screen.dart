@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
-class SoundscapeScreen extends StatefulWidget {
+class SoundscapeScreen extends StatefulWidget { //SoundScapeScreen class created. Stateful used
   const SoundscapeScreen({super.key});
 
   @override
@@ -10,14 +10,14 @@ class SoundscapeScreen extends StatefulWidget {
 
 class _SoundscapeScreenState extends State<SoundscapeScreen> {
   // Current sound toggles
-  bool _rainEnabled = true;
+  bool _rainEnabled = true; //SoundScapeScreen class created. Stateful used
   bool _cafeEnabled = false;
   bool _whiteNoiseEnabled = true;
   bool _natureEnabled = false;
   bool _instrumentalEnabled = false;
 
   // Master volume from 0.0 to 1.0
-  double _masterVolume = 0.5;
+  double _masterVolume = 0.5; //stores volume
 
   // Count enabled layers for summary
   int _getEnabledSoundCount() {

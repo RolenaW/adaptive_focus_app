@@ -2,24 +2,20 @@ import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 import '../data/preference_helper.dart';
 import '../data/ai_focus_dj_helper.dart';
-import 'active_session_screen.dart';
+import 'active_session_screen.dart'; //imports
 
-class FocusSetupScreen extends StatefulWidget {
-  const FocusSetupScreen({super.key});
+class FocusSetupScreen extends StatefulWidget { //FocusSetupScreen class created. StatefulWidget used.
+  const FocusSetupScreen({super.key}); //main screen for focus session setup
 
   @override
   State<FocusSetupScreen> createState() => _FocusSetupScreenState();
 }
 
-class _FocusSetupScreenState extends State<FocusSetupScreen> {
-  // Form key for validation
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for validation
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>(); //forms key for validation
+  final TextEditingController _sessionNameController = TextEditingController();  // manages text for session name field
 
-  // Text controller for session name field
-  final TextEditingController _sessionNameController = TextEditingController();
-
-  // Dropdown choices
-  final List<String> _moodOptions = <String>[
+  final List<String> _moodOptions = <String>[ //dropdown options for mood and task
     'Calm',
     'Focused',
     'Tired',
@@ -35,44 +31,39 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     'Planning',
   ];
 
-  final List<int> _workDurationOptions = <int>[25, 45, 60, 90];
+  final List<int> _workDurationOptions = <int>[25, 45, 60, 90]; //duration options
   final List<int> _breakDurationOptions = <int>[5, 10, 15, 20];
 
-  // Current selected values
-  String? _selectedMood;
-  String? _selectedTaskType;
-  int _selectedWorkDuration = 25;
-  int _selectedBreakDuration = 5;
-  double _energyLevel = 5.0;
-  bool _saveAsBlueprint = false;
-  bool _darkModeEnabled = false;
-  DateTime? _selectedStartDate;
+  String? _selectedMood; //stores current mood
+  String? _selectedTaskType; //stores task type
+  int _selectedWorkDuration = 25; //stores woek duration (default = 25)
+  int _selectedBreakDuration = 5; //stores break duration (default = 5)
+  double _energyLevel = 5.0; //stores slider value
+  bool _saveAsBlueprint = false; //stores whether user checked checkbox (default = false)
+  bool _darkModeEnabled = false; //stores date
+  DateTime? _selectedStartDate; //stores selcted date
 
-  // AI recommendation state
-  AiFocusDjRecommendation? _aiRecommendation;
-  bool _aiApplied = false;
+  AiFocusDjRecommendation? _aiRecommendation; //ai state recommendation, store results
+  bool _aiApplied = false; //whether ai was applied
 
-  @override
+  @override  
   void initState() {
     super.initState();
-    _loadPreferences();
+    _loadPreferences(); //loads saved preferences (like darkmode)
   }
 
   @override
   void dispose() {
     _sessionNameController.dispose();
-    super.dispose();
+    super.dispose(); //prevent memory leak
   }
 
-  // Load saved preferences into form
-  Future<void> _loadPreferences() async {
+  Future<void> _loadPreferences() async { // Load saved preferences into form, connects UI to local storage
     final bool savedDarkMode = await PreferencesHelper.getDarkMode();
-    final int savedWorkDuration =
-        await PreferencesHelper.getDefaultWorkDuration();
-    final int savedBreakDuration =
-        await PreferencesHelper.getDefaultBreakDuration();
+    final int savedWorkDuration = await PreferencesHelper.getDefaultWorkDuration();
+    final int savedBreakDuration = await PreferencesHelper.getDefaultBreakDuration();
 
-    if (!mounted) return;
+    if (!mounted) return; //ensures widget exists
 
     setState(() {
       _darkModeEnabled = savedDarkMode;
@@ -81,11 +72,10 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     });
   }
 
-  // Open date picker
-  Future<void> _pickStartDate() async {
+  Future<void> _pickStartDate() async { //flutter built-in date picker
     final DateTime now = DateTime.now();
 
-    final DateTime? pickedDate = await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker( //calendar popup
       context: context,
       initialDate: _selectedStartDate ?? now,
       firstDate: now.subtract(const Duration(days: 30)),
@@ -93,15 +83,14 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       helpText: 'Select Session Date',
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null) { //saves date selected
       setState(() {
         _selectedStartDate = pickedDate;
       });
     }
   }
 
-  // Generate rule-based AI recommendation
-  void _generateAiRecommendation() {
+  void _generateAiRecommendation() { //generate rule-based ai recommendation
     final AiFocusDjRecommendation recommendation =
         AiFocusDjHelper.getRecommendation(
       mood: _selectedMood,
@@ -110,13 +99,12 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     );
 
     setState(() {
-      _aiRecommendation = recommendation;
+      _aiRecommendation = recommendation; //store result
       _aiApplied = false;
     });
   }
 
-  // Apply AI-recommended work and break durations
-  void _applyAiRecommendation() {
+  void _applyAiRecommendation() { //apply ai-recommended work and break durations
     if (_aiRecommendation == null) {
       return;
     }
@@ -127,15 +115,14 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       _aiApplied = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar( //confirmation
       const SnackBar(
         content: Text('AI Focus DJ recommendation applied.'),
       ),
     );
   }
 
-  // Build readable sound list for AI explanation
-  String _buildSoundMixLabel(AiFocusDjRecommendation recommendation) {
+  String _buildSoundMixLabel(AiFocusDjRecommendation recommendation) { // build readable sound list for ai explanation
     final List<String> enabledSounds = <String>[];
 
     if (recommendation.rainEnabled) enabledSounds.add('Rain');
@@ -147,39 +134,32 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     if (enabledSounds.isEmpty) {
       return 'No sound layers selected';
     }
-
     return enabledSounds.join(', ');
   }
 
-  // Validate session name
-  String? _validateSessionName(String? value) {
+  String? _validateSessionName(String? value) { //validate session name
     final String cleanedValue = value?.trim() ?? '';
 
     if (cleanedValue.isEmpty) {
       return 'Please enter a session name.';
     }
-
     if (cleanedValue.length < 3) {
       return 'Session name must be at least 3 characters.';
     }
-
     if (cleanedValue.length > 30) {
       return 'Session name must be 30 characters or less.';
     }
-
     return null;
   }
 
-  // Reusable dropdown validator
-  String? _validateRequiredSelection(String? value, String fieldName) {
+  String? _validateRequiredSelection(String? value, String fieldName) { //reusable dropdown validator
     if (value == null || value.trim().isEmpty) {
       return 'Please select a $fieldName.';
     }
     return null;
   }
 
-  // Save session into SQLite and open active session screen
-  Future<void> _submitForm() async {
+  Future<void> _submitForm() async { //save session into SQLite and open active session screen
     final bool isFormValid = _formKey.currentState?.validate() ?? false;
 
     if (!isFormValid) {
@@ -190,7 +170,6 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
       );
       return;
     }
-
     if (_selectedStartDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -202,7 +181,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
 
     final String cleanedSessionName = _sessionNameController.text.trim();
 
-    final Map<String, dynamic> sessionData = <String, dynamic>{
+    final Map<String, dynamic> sessionData = <String, dynamic>{ //prepares the data for database
       'session_name': cleanedSessionName,
       'mood': _selectedMood!,
       'task_type': _selectedTaskType!,
@@ -221,7 +200,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
 
       if (!mounted) return;
 
-      await showDialog<void>(
+      await showDialog<void>( //shows the confirmation log
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
@@ -246,11 +225,9 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
           );
         },
       );
-
       if (!mounted) return;
 
-      // Open active session tied to the saved database row
-      Navigator.push(
+      Navigator.push( //open active session tied to the saved database row
         context,
         MaterialPageRoute(
           builder: (context) => ActiveSessionScreen(sessionId: insertedId),
@@ -267,8 +244,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
     }
   }
 
-  // Format date for screen display
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime date) { //format date for screen display
     final String month = date.month.toString().padLeft(2, '0');
     final String day = date.day.toString().padLeft(2, '0');
     final String year = date.year.toString();
@@ -276,7 +252,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { //UI build
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
@@ -304,8 +280,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Session name input
-                      TextFormField(
+                      TextFormField( //session name input
                         controller: _sessionNameController,
                         textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(
@@ -317,8 +292,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Mood dropdown
-                      DropdownButtonFormField<String>(
+                      DropdownButtonFormField<String>( //mood dropdown
                         value: _selectedMood,
                         decoration: const InputDecoration(
                           labelText: 'Mood',
@@ -340,8 +314,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Task type dropdown
-                      DropdownButtonFormField<String>(
+                      DropdownButtonFormField<String>( //task dropdown
                         value: _selectedTaskType,
                         decoration: const InputDecoration(
                           labelText: 'Task Type',
@@ -363,8 +336,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Date picker
-                      InputDecorator(
+                      InputDecorator( //date picker
                         decoration: const InputDecoration(
                           labelText: 'Session Date',
                           prefixIcon: Icon(Icons.calendar_today_rounded),
@@ -382,8 +354,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Energy slider
-                      Text(
+                      Text( //energy slider
                         'Energy Level: ${_energyLevel.round()}/10',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
@@ -402,8 +373,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
 
                       const SizedBox(height: 16),
 
-                      // AI suggestion card
-                      Card(
+                      Card( //ai siggestion card
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -469,8 +439,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Work duration dropdown
-                      DropdownButtonFormField<int>(
+                      DropdownButtonFormField<int>( //work duration dropdown
                         value: _selectedWorkDuration,
                         decoration: const InputDecoration(
                           labelText: 'Work Duration (minutes)',
@@ -498,8 +467,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Break duration dropdown
-                      DropdownButtonFormField<int>(
+                      DropdownButtonFormField<int>( //break duration dropdown
                         value: _selectedBreakDuration,
                         decoration: const InputDecoration(
                           labelText: 'Break Duration (minutes)',
@@ -527,8 +495,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Dark mode switch
-                      SwitchListTile(
+                      SwitchListTile( //dark mode switch
                         contentPadding: EdgeInsets.zero,
                         value: _darkModeEnabled,
                         title: const Text('Enable dark mode'),
@@ -555,8 +522,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Blueprint checkbox
-                      CheckboxListTile(
+                      CheckboxListTile( //blueprint checkbox
                         contentPadding: EdgeInsets.zero,
                         value: _saveAsBlueprint,
                         title: const Text('Save as reusable blueprint'),
@@ -571,8 +537,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Submit button
-                      SizedBox(
+                      SizedBox( //submit button
                         height: 52,
                         child: ElevatedButton.icon(
                           onPressed: _submitForm,

@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
-class ActiveSessionScreen extends StatefulWidget {
-  final int? sessionId;
+class ActiveSessionScreen extends StatefulWidget { //ActiveSessionScreen class created. StatefulWidget used.
+  final int? sessionId; //session id to mark session as complete
 
-  const ActiveSessionScreen({
+  const ActiveSessionScreen({ 
     super.key,
     this.sessionId,
   });
@@ -15,38 +15,32 @@ class ActiveSessionScreen extends StatefulWidget {
 }
 
 class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
-  Timer? _timer;
-
-  // Default Pomodoro time
-  int _remainingSeconds = 25 * 60;
-
-  // Track whether timer is active
-  bool _isRunning = false;
-
-  // Track whether user is on break or focus session
-  bool _isBreak = false;
+  Timer? _timer; //setting up the timer
+  int _remainingSeconds = 25 * 60; //tracks how much time left
+  bool _isRunning = false; //tracks whether time is active
+  bool _isBreak = false; //track if in break or focus mode
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _timer?.cancel(); //stops the timer if the screen is left
     super.dispose();
   }
 
-  // Mark the linked saved session as completed
-  Future<void> _markSessionCompleted() async {
+
+  Future<void> _markSessionCompleted() async { //mark the linked saved session as completed
     if (widget.sessionId == null) {
       return;
     }
 
     try {
-      await DatabaseHelper.instance.updateFocusSession(
+      await DatabaseHelper.instance.updateFocusSession( 
         widget.sessionId!,
-        <String, dynamic>{'completed': 1},
+        <String, dynamic>{'completed': 1}, // mark session as done
       );
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar( //shows error if database update fails
         SnackBar(
           content: Text('Failed to update session: $error'),
         ),
@@ -54,33 +48,31 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     }
   }
 
-  // Start timer if not already running
-  void _startTimer() {
+  void _startTimer() { //start timer if not already running
     if (_isRunning) return;
 
     setState(() {
       _isRunning = true;
     });
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) { //run every second
       if (!mounted) {
         timer.cancel();
         return;
       }
 
-      if (_remainingSeconds > 0) {
+      if (_remainingSeconds > 0) { //countdown
         setState(() {
           _remainingSeconds--;
         });
       } else {
-        timer.cancel();
+        timer.cancel(); //time done cancel and/or switch mode
         _switchMode();
       }
     });
   }
 
-  // Pause timer
-  void _pauseTimer() {
+  void _pauseTimer() { //pause timer
     _timer?.cancel();
 
     setState(() {
@@ -88,8 +80,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     });
   }
 
-  // Reset timer back to focus mode defaults
-  void _resetTimer() {
+  void _resetTimer() { //reset timer back to focus mode defaults
     _timer?.cancel();
 
     setState(() {
@@ -99,8 +90,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     });
   }
 
-  // Exit screen and stop timer
-  Future<void> _exitSession() async {
+  Future<void> _exitSession() async { //exit screen and stop timer
     _timer?.cancel();
 
     if (!mounted) return;
@@ -108,17 +98,14 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     Navigator.of(context).pop();
   }
 
-  // Switch between focus and break
-  Future<void> _switchMode() async {
+  Future<void> _switchMode() async { //switch between focus and break
     final bool wasFocusSession = !_isBreak;
 
     _timer?.cancel();
 
-    // Only mark session completed when a focus block ends
-    if (wasFocusSession) {
+    if (wasFocusSession) { //only mark session completed when a focus block ends
       await _markSessionCompleted();
     }
-
     if (!mounted) return;
 
     setState(() {
@@ -134,8 +121,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     );
   }
 
-  // Convert seconds into MM:SS
-  String _formatTime(int seconds) {
+  String _formatTime(int seconds) { //convert seconds into MM:SS
     final int minutes = seconds ~/ 60;
     final int secs = seconds % 60;
 
@@ -158,9 +144,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 20),
-
-                // Simple timer animation
-                TweenAnimationBuilder<double>(
+                TweenAnimationBuilder<double>( //timer animation
                   duration: const Duration(milliseconds: 300),
                   tween: Tween<double>(begin: 0.9, end: 1.0),
                   builder: (context, value, child) {
@@ -178,9 +162,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-
-                // Main timer controls
-                Row(
+                Row( //main timer controls
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton.icon(
@@ -203,9 +185,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Exit session button
-                SizedBox(
+                SizedBox( //exit session button
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: _exitSession,
@@ -215,9 +195,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                 ),
 
                 const SizedBox(height: 30),
-
-                // Status text
-                Text(
+                Text( //status text
                   _isRunning
                       ? 'Session in progress...'
                       : 'Press Start to begin',

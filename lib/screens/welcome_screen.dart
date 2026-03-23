@@ -6,7 +6,7 @@ class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class. Sta
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold( //main structure
+    return Scaffold( //main structure, page layout
       appBar: AppBar( 
         title: const Text('Adaptive Focus Studio'),
         centerTitle: true, //top bar of screen (still needs more)
@@ -33,20 +33,19 @@ class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class. Sta
                     ),
                   );
                 },
-                child: Column(
+                child: Column( //main UI
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [ //keeping order of widgets
-                    _buildHeroIcon(),
+                    _buildHeroIcon(), //icon
                     const SizedBox(height: 24),
-                    _buildTitle(),
+                    _buildTitle(), //title
                     const SizedBox(height: 12),
-                    _buildSubtitle(),
+                    _buildSubtitle(), //description
                     const SizedBox(height: 28),
-                    _buildFeatureCard(),
+                    _buildFeatureCard(), //features list
                     const SizedBox(height: 28),
-                    _buildStartButton(context),
+                    _buildStartButton(context), //start
                     const SizedBox(height: 12),
-                    _buildSecondaryInfo(),
                   ],
                 ),
               ),
@@ -95,7 +94,7 @@ class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class. Sta
     );
   }
 
-  Widget _buildFeatureCard() { //material card widget
+  Widget _buildFeatureCard() { //features
     return Card(
       elevation: 1.5,
       child: Padding(
@@ -149,20 +148,9 @@ class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class. Sta
       ),
     );
   }
-
-  Widget _buildSecondaryInfo() {
-    return Text(
-      '.', //still editing
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 13,
-        color: Colors.grey.shade600,
-      ),
-    );
-  }
 }
 
-class _FeatureRow extends StatelessWidget {
+class _FeatureRow extends StatelessWidget { //reusable widget for feature line
   final IconData icon;
   final String text;
 
@@ -175,7 +163,7 @@ class _FeatureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon),
+        Icon(icon), //feature icon
         const SizedBox(width: 12),
         Expanded(
           child: Text(
