@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'focus_setup_screen.dart';
-<<<<<<< HEAD
 import 'active_session_screen.dart';
 import 'soundscape_screen.dart';
 import 'insights_screen.dart';
-=======
-import 'soundscape_screen.dart';
->>>>>>> 0837d2c (Added FocusSetupscreen and SoundscapeScreen)
 
 class NavigationScreen extends StatefulWidget { //NavigationScreen class created. StatefulWidget used.
   const NavigationScreen({super.key});
@@ -18,7 +14,6 @@ class NavigationScreen extends StatefulWidget { //NavigationScreen class created
 class _MainNavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0; //stores each tab
 
-<<<<<<< HEAD
   late final List<Widget> _screens = [ //list that stores the pages shown for each tab
     const FocusSetupScreen(), 
     const ActiveSessionScreen(),
@@ -28,13 +23,6 @@ class _MainNavigationScreenState extends State<NavigationScreen> {
       title: 'Focus Setup',
       description: 'This is where users will choose mood, task type, energy level and session length.',
       icon: Icons.tune_rounded,
-=======
- final List<NavigationDestination> _destinations = const [
-    NavigationDestination(
-      icon: Icon(Icons.tune_outlined),
-      selectedIcon: Icon(Icons.tune_rounded),
-      label: 'Setup',
->>>>>>> 0837d2c (Added FocusSetupscreen and SoundscapeScreen)
     ),
     NavigationDestination(
       icon: Icon(Icons.timer_outlined),
