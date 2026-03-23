@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 import 'active_session_screen.dart';
+import '../data/preference_helper.dart';
 
 class FocusSetupScreen extends StatefulWidget { //creates FocusSetupScreen class, statefulwidget used
   const FocusSetupScreen({super.key});
@@ -39,6 +40,27 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
   double _energyLevel = 5.0; //stores slider value
   bool _saveAsBlueprint = false; //stores whether user checked checkbox (default = false)
   DateTime? _selectedStartDate; //stores date
+  bool _darkModeEnabled = false;
+
+  @override 
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async { //when screen opens it will load all these defaults
+    final bool savedDarkMode = await PreferencesHelper.getDarkMode();
+    final int savedWorkDuration = await PreferencesHelper.getDefaultWorkDuration();
+    final int savedBreakDuration = await PreferencesHelper.getDefaultBreakDuration();
+
+    if (!mounted) return;
+
+    setState(() {
+      _darkModeEnabled = savedDarkMode;
+      _selectedWorkDuration = savedWorkDuration;
+      _selectedBreakDuration = savedBreakDuration;
+    });
+  }
 
   @override
   void dispose() { //prevent memory leaks. keeps everything clean
@@ -353,8 +375,10 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
               child: Text('$minutes minutes'),
             );
           }).toList(),
-          onChanged: (int? value) {
+          onChanged: (int? value) async {
             if (value != null) { //dropdown can be null
+              await PreferencesHelper.setDefaultWorkDuration(value);
+              if (!mounted) return;
               setState(() {
                 _selectedWorkDuration = value;
               });
@@ -374,8 +398,10 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
               child: Text('$minutes minutes'),
             );
           }).toList(),
-          onChanged: (int? value) {
+          onChanged: (int? value) async {
             if (value != null) {
+              await PreferencesHelper.setDefaultBreakDuration(value);
+              if (!mounted) return;
               setState(() {
                 _selectedBreakDuration = value;
               });
@@ -392,6 +418,30 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> {
             setState(() {
               _saveAsBlueprint = value ?? false;
             });
+          },
+        ),
+        const SizedBox(height: 16), 
+
+        // CHANGED: dark mode switch using SharedPreferences
+        SwitchListTile( //dark mode switch
+          contentPadding: EdgeInsets.zero,
+          value: _darkModeEnabled,
+          title: const Text('Enable dark mode'),
+          subtitle: const Text('Save app theme preference locally'),
+          onChanged: (bool value) async {
+            await PreferencesHelper.setDarkMode(value);
+
+            if (!mounted) return;
+
+            setState(() {
+              _darkModeEnabled = value;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Dark mode preference saved. Restart app to see full theme change.'),
+              ),
+            );
           },
         ),
       ],
