@@ -11,11 +11,6 @@ class DatabaseHelper { //DatabaseHelper class created
   static const String soundPresetsTable = 'sound_presets';
   static const String sessionBlueprintsTable = 'session_blueprints';
 
-  Future<int> insertSession(Map<String, dynamic> session) async { //insert function returns ID
-    final db = await database;
-    return await db.insert('sessions', session);
-  }
-
   Future<Database> get database async { //gives access to database instance
     if (_database != null) { //if the database already exist then it's returned
       return _database!;

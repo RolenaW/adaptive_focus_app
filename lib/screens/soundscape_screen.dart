@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/database_helper.dart';
 
 class SoundscapeScreen extends StatefulWidget { //SoundScapeScreen class created. Stateful used
   const SoundscapeScreen({super.key});
@@ -16,14 +17,6 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
 
   double _masterVolume = 0.5; //stores volume
 
-  void _showPresetMessage() { //shows snackbar when user saves
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Preset saving will be connected later.'),
-      ),
-    );
-  }
-
   int _getEnabledSoundCount() { //counts how many sound layers are currently turned on
     int enabledCount = 0;
 
@@ -34,6 +27,85 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
     if (_instrumentalEnabled) enabledCount++; //checks boolean and adds 1 for each enable sound ^
 
     return enabledCount;
+  }
+  Future<void> _showSavePresetDialog() async {
+    final TextEditingController presetNameController =
+        TextEditingController();
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Save Sound Preset'),
+          content: TextField(
+            controller: presetNameController,
+            decoration: const InputDecoration(
+              labelText: 'Preset Name',
+              hintText: 'Example: Deep Focus Rain',
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                presetNameController.dispose();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final String presetName =
+                    presetNameController.text.trim();
+
+                if (presetName.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a preset name.'),
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  await DatabaseHelper.instance.createSoundPreset(
+                    <String, dynamic>{
+                      'preset_name': presetName,
+                      'rain_enabled': _rainEnabled ? 1 : 0,
+                      'cafe_enabled': _cafeEnabled ? 1 : 0,
+                      'white_noise_enabled': _whiteNoiseEnabled ? 1 : 0,
+                      'nature_enabled': _natureEnabled ? 1 : 0,
+                      'instrumental_enabled': _instrumentalEnabled ? 1 : 0,
+                      'master_volume': _masterVolume,
+                      'created_at': DateTime.now().toIso8601String(),
+                    },
+                  );
+
+                  if (!mounted) return;
+
+                  Navigator.of(context).pop();
+                  presetNameController.dispose();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Preset saved successfully.'),
+                    ),
+                  );
+                } catch (error) {
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to save preset: $error'),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -161,7 +233,7 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                     SizedBox( //save button
                       height: 52,
                       child: ElevatedButton.icon(
-                        onPressed: _showPresetMessage,
+                        onPressed: _showSavePresetDialog, //saves
                         icon: const Icon(Icons.save_outlined),
                         label: const Text('Save Preset'),
                       ),

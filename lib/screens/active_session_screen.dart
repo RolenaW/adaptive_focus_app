@@ -86,6 +86,13 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
       _remainingSeconds = 25 * 60;
     });
   }
+  Future<void> _exitSession() async {
+    _timer?.cancel();
+
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
+  }
 
   Future<void> _switchMode() async { //Pomodoro: switching b/w focus and break
     final bool wasFocusSession = !_isBreak; //before switching, lets us check if we're currentlly in focus block
@@ -175,6 +182,16 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                       label: const Text('Reset'),
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 16), //exit session
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _exitSession,
+                    icon: const Icon(Icons.exit_to_app),
+                    label: const Text('Exit Session'),
+                  ),
                 ),
 
                 const SizedBox(height: 30),
