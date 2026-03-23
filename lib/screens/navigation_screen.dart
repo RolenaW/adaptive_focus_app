@@ -73,12 +73,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         title: Text(_getScreenTitle()),
         centerTitle: true,
       ),
-      body: AnimatedSwitcher( //smooth transitions/animation
-        duration: const Duration(milliseconds: 250),
-        child: KeyedSubtree( //key forces flutter to treat each screen as different widget
-          key: ValueKey<int>(_selectedIndex),
-          child: _screens[_selectedIndex], //shows the current screen
-        ),
+      body: IndexedStack(
+        index: _selectedIndex, // controls which screen is visible
+        children: _screens,    // ALL screens stay in memory
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

@@ -10,7 +10,7 @@ Future<void> main() async { //entry point for app
 }
 
 class FocusStudioApp extends StatelessWidget { //root widget
-  final bool isDarkMode;
+  final bool isDarkMode; 
   const FocusStudioApp({super.key,required this.isDarkMode,}); //construcotr for theme preference
 
   @override
