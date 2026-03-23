@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../data/database_helper.dart';
 
 class ActiveSessionScreen extends StatefulWidget { //creates ActiveScreenSession class, stateful used
   const ActiveSessionScreen({super.key});
@@ -21,6 +22,32 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     super.dispose();
   }
 
+  Future<void> _markLatestSessionCompleted() async {
+    try {
+      final sessions = await DatabaseHelper.instance.getAllFocusSessions(); 
+
+      if (sessions.isEmpty) return; //return by newest
+
+      final latestSession = sessions.first; //most recent session
+      final int id = latestSession['id'] as int; //gets id of session
+
+      await DatabaseHelper.instance.updateFocusSession( //marks as completed
+        id,
+        <String, dynamic>{
+          'completed': 1,
+        },
+      );
+    } catch (error) { //prevent crash
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update session: $error'),
+        ),
+      );
+    }
+  }
+
   void _startTimer() { //runs every second
     if (_isRunning) return;
 
@@ -29,11 +56,16 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) { //added to cancel timer if widget is removed
+        timer.cancel();
+        return;
+      }
       if (_remainingSeconds > 0) {
         setState(() {
           _remainingSeconds--;
         });
       } else {
+        timer.cancel(); //cancel before switching
         _switchMode();
       }
     });
@@ -57,11 +89,17 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     });
   }
 
-  void _switchMode() { //Pomodoro: switching b/w focus and break
+  Future<void> _switchMode() async { //Pomodoro: switching b/w focus and break
+    final bool wasFocusSession = !_isBreak; //before switching, lets us check if we're currentlly in focus block
     _timer?.cancel();
 
-    setState(() {
-      _isRunning = false;
+    if (wasFocusSession) {
+      await _markLatestSessionCompleted(); //update databasse when focus block finishes
+    }
+    if (!mounted) return;
+
+    setState(() { //switch timer to next mode
+      _isRunning = false; //finishing a focus session
       _isBreak = !_isBreak;
       _remainingSeconds = _isBreak ? 5 * 60 : 25 * 60; //swicth duration
     });
