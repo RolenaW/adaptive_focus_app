@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'focus_setup_screen.dart';
+<<<<<<< HEAD
 import 'active_session_screen.dart';
 import 'soundscape_screen.dart';
 import 'insights_screen.dart';
+=======
+import 'soundscape_screen.dart';
+>>>>>>> 0837d2c (Added FocusSetupscreen and SoundscapeScreen)
 
 class NavigationScreen extends StatefulWidget { //NavigationScreen class created. StatefulWidget used.
   const NavigationScreen({super.key});
@@ -14,6 +18,7 @@ class NavigationScreen extends StatefulWidget { //NavigationScreen class created
 class _MainNavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0; //stores each tab
 
+<<<<<<< HEAD
   late final List<Widget> _screens = [ //list that stores the pages shown for each tab
     const FocusSetupScreen(), 
     const ActiveSessionScreen(),
@@ -23,24 +28,31 @@ class _MainNavigationScreenState extends State<NavigationScreen> {
       title: 'Focus Setup',
       description: 'This is where users will choose mood, task type, energy level and session length.',
       icon: Icons.tune_rounded,
+=======
+ final List<NavigationDestination> _destinations = const [
+    NavigationDestination(
+      icon: Icon(Icons.tune_outlined),
+      selectedIcon: Icon(Icons.tune_rounded),
+      label: 'Setup',
+>>>>>>> 0837d2c (Added FocusSetupscreen and SoundscapeScreen)
     ),
-    const _NavigationPlaceholderScreen(
-      title: 'Active Session',
-      description: 'This screen will run the Pomodoro timer, focus session and distraction tracking.',
-      icon: Icons.timer_outlined,
+    NavigationDestination(
+      icon: Icon(Icons.timer_outlined),
+      selectedIcon: Icon(Icons.timer),
+      label: 'Session',
     ),
-    const _NavigationPlaceholderScreen(
-      title: 'Soundscape',
-      description: 'This is where users will customize sound layers and save audio presets.',
-      icon: Icons.graphic_eq_rounded,
+    NavigationDestination(
+      icon: Icon(Icons.graphic_eq_outlined),
+      selectedIcon: Icon(Icons.graphic_eq_rounded),
+      label: 'Soundscape',
     ),
-    const _NavigationPlaceholderScreen(
-      title: 'Insights',
-      description: 'This screen will show productivity trends, focus ratings and session history.',
-      icon: Icons.analytics_outlined,
+    NavigationDestination(
+      icon: Icon(Icons.insights_outlined),
+      selectedIcon: Icon(Icons.insights),
+      label: 'Insights',
     ),
   ];
-
+   
   void _onItemTapped(int index) { //letting flutter know to rebuild
     setState(() {
       _selectedIndex = index;
