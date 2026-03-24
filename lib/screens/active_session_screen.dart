@@ -6,6 +6,7 @@ class ActiveSessionScreen extends StatefulWidget { //ActiveSessionScreen class c
   final int? sessionId; //session id to mark session as complete
   final int workDuration;
   final int breakDuration;
+
   const ActiveSessionScreen({super.key,this.sessionId, 
     required this.workDuration,
     required this.breakDuration,
@@ -24,7 +25,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   void initState() {
     super.initState();
-    _remainingSeconds = widget.workDuration * 60; //uses passed value instead
+    _remainingSeconds = widget.workDuration * 60; //uses real duration
   }
 
   @override
@@ -101,29 +102,25 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     _timer?.cancel();
 
     if (!mounted) return;
-
     Navigator.of(context).pop();
   }
 
   Future<void> _switchMode() async { //switch between focus and break
     final bool wasFocusSession = !_isBreak;
 
-    _timer?.cancel();
-
     if (wasFocusSession) { //only mark session completed when a focus block ends
       await _markSessionCompleted();
     }
-    if (!mounted) return;
 
     setState(() {
-      _isRunning = false;
       _isBreak = !_isBreak;
       _remainingSeconds = _isBreak 
         ? widget.breakDuration * 60
         : widget.workDuration * 60;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    if(!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar( //show user feedback
       SnackBar(
         content: Text(_isBreak ? 'Break time!' : 'Back to focus!'),
       ),

@@ -192,6 +192,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for v
       'break_duration_minutes': _selectedBreakDuration,
       'session_date': _selectedStartDate!.toIso8601String(),
       'completed': 0,
+      'ai_feedback': _aiFeedback ?? 0,
       'created_at': DateTime.now().toIso8601String(),
     };
 
