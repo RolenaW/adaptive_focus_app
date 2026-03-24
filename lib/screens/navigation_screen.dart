@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'focus_setup_screen.dart';
-import 'active_session_screen.dart';
 import 'soundscape_screen.dart';
 import 'insights_screen.dart'; //imports
 
@@ -16,10 +15,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   final List<Widget> _screens = const <Widget>[ //list that stores the pages shown for each tab
     FocusSetupScreen(), //index 0 ^
-    ActiveSessionScreen(
-      workDuration: 25,
-      breakDuration: 5,
-    ),
     SoundscapeScreen(),
     InsightsScreen(),
   ];
@@ -29,12 +24,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     NavigationDestination(
       icon: Icon(Icons.tune_outlined),
       selectedIcon: Icon(Icons.tune_rounded),
-      label: 'Setup',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.timer_outlined),
-      selectedIcon: Icon(Icons.timer),
-      label: 'Session',
+      label: 'Focus Setup',
     ),
     NavigationDestination(
       icon: Icon(Icons.graphic_eq_outlined),
@@ -59,10 +49,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
       case 0:
         return 'Focus Setup';
       case 1:
-        return 'Active Session';
-      case 2:
         return 'Soundscape Studio';
-      case 3:
+      case 2:
         return 'Insights & Tracker';
       default:
         return 'Adaptive Focus Studio';
