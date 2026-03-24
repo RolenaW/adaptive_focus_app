@@ -9,16 +9,37 @@ Future<void> main() async { //entry point for app
   runApp(FocusStudioApp(isDarkMode: isDarkMode)); //launch app
 }
 
-class FocusStudioApp extends StatelessWidget { //root widget
+class FocusStudioApp extends StatefulWidget { //root widget, changed to stateful widget
   final bool isDarkMode; 
   const FocusStudioApp({super.key,required this.isDarkMode,}); //construcotr for theme preference
+
+  @override
+  State<FocusStudioApp> createState() => _FocusStudioAppState();
+  static _FocusStudioAppState? of(BuildContext context) { //allows child widgets to access and update theme
+    return context.findAncestorStateOfType<_FocusStudioAppState>();
+  }
+}
+class _FocusStudioAppState extends State<FocusStudioApp> {
+  late bool _isDarkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = widget.isDarkMode; //initialize theme from saved preference
+  }
+  void toggleTheme(bool value) async { //function to toggle theme
+    setState(() {
+      _isDarkMode = value; //update UI instantly
+    });
+    await PreferencesHelper.setDarkMode(value); //save preference so it persists after app restart
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Adaptive Focus Studio', //title
       debugShowCheckedModeBanner: false, //remove debug banner
-      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light, //choose light or dark mode
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light, //choose light or dark mode
       theme: ThemeData( //light theme
         useMaterial3: true,
         colorSchemeSeed: Colors.indigo,

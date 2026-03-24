@@ -3,6 +3,7 @@ import '../data/database_helper.dart';
 import '../data/preference_helper.dart';
 import '../data/ai_focus_dj_helper.dart';
 import 'active_session_screen.dart'; //imports
+import '/main.dart';
 
 class FocusSetupScreen extends StatefulWidget { //FocusSetupScreen class created. StatefulWidget used.
   const FocusSetupScreen({super.key}); //main screen for focus session setup
@@ -502,22 +503,11 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for v
                         subtitle: const Text(
                           'Save app theme preference locally',
                         ),
-                        onChanged: (bool value) async {
-                          await PreferencesHelper.setDarkMode(value);
-
-                          if (!mounted) return;
-
+                        onChanged: (value) {
                           setState(() {
                             _darkModeEnabled = value;
                           });
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Dark mode preference saved. Restart app to see full theme change.',
-                              ),
-                            ),
-                          );
+                          FocusStudioApp.of(context)?.toggleTheme(value);
                         },
                       ),
                       const SizedBox(height: 16),
