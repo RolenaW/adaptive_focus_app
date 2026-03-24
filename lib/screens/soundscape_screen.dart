@@ -16,6 +16,9 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
   bool _natureEnabled = false;
   bool _instrumentalEnabled = false;
 
+  List<Map<String, dynamic>> _savedPresets = []; //store presets from database
+  bool _isLoadingPresets =false;
+
   // Master volume from 0.0 to 1.0
   double _masterVolume = 0.5; //stores volume
 
@@ -30,6 +33,33 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
     if (_instrumentalEnabled) enabledCount++;
 
     return enabledCount;
+  }
+
+    Future<void> _loadPresets() async { //fetchs presets from SQLite
+    setState(() {
+      _isLoadingPresets = true;
+    });
+
+    try {
+      final presets = await DatabaseHelper.instance.getAllSoundPresets();
+
+      if (!mounted) return;
+
+      setState(() {
+        _savedPresets = presets;
+        _isLoadingPresets = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingPresets = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load presets: $e')),
+      );
+    }
   }
 
   // Save a sound preset into SQLite
@@ -109,6 +139,106 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
         );
       },
     );
+  }
+
+  void _applyPreset(Map<String, dynamic> preset) { //aply preset to UI
+    setState(() {
+      _rainEnabled = preset['rain_enabled'] == 1;
+      _cafeEnabled = preset['cafe_enabled'] == 1;
+      _whiteNoiseEnabled = preset['white_noise_enabled'] == 1;
+      _natureEnabled = preset['nature_enabled'] == 1;
+      _instrumentalEnabled = preset['instrumental_enabled'] == 1;
+
+      _masterVolume = (preset['master_volume'] as num).toDouble();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Preset "${preset['preset_name']}" applied'),
+      ),
+    );
+  }
+
+  Future<void> _showLoadPresetDialog() async { //show preset list dialog
+    await _loadPresets();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Load Preset'),
+
+          content: _isLoadingPresets
+              ? const Center(child: CircularProgressIndicator())
+              : _savedPresets.isEmpty
+                  ? const Text('No presets found.')
+                  : SizedBox(
+                      width: double.maxFinite,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _savedPresets.length,
+                        itemBuilder: (context, index) {
+                          final preset = _savedPresets[index];
+
+                          return ListTile(
+                            title: Text(preset['preset_name']),
+                            subtitle: Text(
+                              'Volume: ${(preset['master_volume'] * 100).round()}%',
+                            ),
+                            onTap: () { //tap to apply preset
+                              Navigator.pop(context);
+                              _applyPreset(preset);
+                            },
+                            onLongPress: () async { //long press to delete
+                              await _deletePreset(preset['id']);
+
+                              Navigator.pop(context); //close dialog
+                              _showLoadPresetDialog(); //reopen updated list
+                            },
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+
+                              onPressed: () async {
+                                await _deletePreset(preset['id']);
+
+                                Navigator.pop(context); //close dialog
+                                _showLoadPresetDialog(); //reopen updated list
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  Future<void> _deletePreset(int id) async { //delete preset
+    try {
+      await DatabaseHelper.instance.deleteSoundPreset(id);
+      await _loadPresets(); //reload list after deletion
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preset deleted')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete preset: $e')),
+      );
+    }
   }
 
   @override
@@ -264,14 +394,22 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                     ),
 
                     const SizedBox(height: 20),
-
-                    // Save preset button
-                    SizedBox(
+                    SizedBox( //save preset button
                       height: 52,
                       child: ElevatedButton.icon(
                         onPressed: _showSavePresetDialog,
                         icon: const Icon(Icons.save_outlined),
                         label: const Text('Save Preset'),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: _showLoadPresetDialog,
+                        icon: const Icon(Icons.folder_open),
+                        label: const Text('Load Preset'),
                       ),
                     ),
                   ],

@@ -2,26 +2,18 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  // Private constructor for singleton pattern
-  DatabaseHelper._internal();
+  DatabaseHelper._internal(); // Private constructor for singleton pattern
+  static final DatabaseHelper instance = DatabaseHelper._internal(); // One shared instance of this helper
+  static Database? _database; // Cached database object
 
-  // One shared instance of this helper
-  static final DatabaseHelper instance = DatabaseHelper._internal();
-
-  // Cached database object
-  static Database? _database;
-
-  // Database name and version
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 1; // Database name and version
   static const String _databaseName = 'adaptive_focus_studio.db';
 
-  // Table names
-  static const String focusSessionsTable = 'focus_sessions';
+  static const String focusSessionsTable = 'focus_sessions'; // Table names
   static const String soundPresetsTable = 'sound_presets';
   static const String sessionBlueprintsTable = 'session_blueprints';
 
-  // Get database instance
-  Future<Database> get database async {
+  Future<Database> get database async { // Get database instance
     if (_database != null) {
       return _database!;
     }
@@ -30,8 +22,7 @@ class DatabaseHelper {
     return _database!;
   }
 
-  // Create/open database file
-  Future<Database> _initializeDatabase() async {
+  Future<Database> _initializeDatabase() async { // Create/open database file
     final String databasesPath = await getDatabasesPath();
     final String path = join(databasesPath, _databaseName);
 
@@ -96,12 +87,8 @@ class DatabaseHelper {
     ''');
   }
 
-  // -----------------------------
-  // Focus session CRUD
-  // -----------------------------
-
   // Create a new focus session
-  Future<int> createFocusSession(Map<String, dynamic> sessionData) async {
+  Future<int> createFocusSession(Map<String, dynamic> sessionData) async { //Focus session CRUD
     final Database db = await database;
     return db.insert(focusSessionsTable, sessionData);
   }
@@ -159,11 +146,7 @@ class DatabaseHelper {
     );
   }
 
-  // -----------------------------
-  // Sound preset CRUD
-  // -----------------------------
-
-  Future<int> createSoundPreset(Map<String, dynamic> presetData) async {
+  Future<int> createSoundPreset(Map<String, dynamic> presetData) async { //Sound Present CRUD
     final Database db = await database;
     return db.insert(soundPresetsTable, presetData);
   }
@@ -207,7 +190,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteSoundPreset(int id) async {
+  Future<int> deleteSoundPreset(int id) async { //delete present sound
     final Database db = await database;
 
     return db.delete(
@@ -217,11 +200,7 @@ class DatabaseHelper {
     );
   }
 
-  // -----------------------------
-  // Session blueprint CRUD
-  // -----------------------------
-
-  Future<int> createSessionBlueprint(Map<String, dynamic> blueprintData) async {
+  Future<int> createSessionBlueprint(Map<String, dynamic> blueprintData) async { //Session blueprint CRUD
     final Database db = await database;
     return db.insert(sessionBlueprintsTable, blueprintData);
   }
