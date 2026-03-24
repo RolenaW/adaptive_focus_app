@@ -56,14 +56,18 @@ class WelcomeScreen extends StatelessWidget { //created WelcomeScreen class. Sta
     );
   }
 
-  Widget _buildHeroIcon() { //main icon widget
+  Widget _buildHeroIcon() { // main icon widget
     return Semantics(
       label: 'App focus icon',
       child: CircleAvatar(
         radius: 55,
-        child: Icon(
-          Icons.graphic_eq_rounded,
-          size: 58,
+        backgroundColor: Colors.transparent, // removes default background
+        child: Padding(
+          padding: const EdgeInsets.all(10), // trims extra empty space from png
+          child: Image.asset(
+            'assets/images/Icon.png',
+            fit: BoxFit.contain, // keeps proportions correct
+          ),
         ),
       ),
     );

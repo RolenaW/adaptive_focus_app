@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 import '../data/preference_helper.dart';
-import '../data/ai_focus_dj_helper.dart';
+import '../service/ai_focus_dj_helper.dart';
 import 'active_session_screen.dart'; //imports
 import '/main.dart';
 
