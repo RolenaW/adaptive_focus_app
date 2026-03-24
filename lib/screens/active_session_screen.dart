@@ -93,7 +93,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     setState(() {
       _isRunning = false;
       _isBreak = false;
-      _remainingSeconds = 25 * 60;
+      _remainingSeconds = widget.workDuration * 60;
     });
   }
 

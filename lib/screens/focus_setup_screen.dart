@@ -43,6 +43,7 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for v
   bool _saveAsBlueprint = false; //stores whether user checked checkbox (default = false)
   bool _darkModeEnabled = false; //stores date
   DateTime? _selectedStartDate; //stores selcted date
+  int? _aiFeedback; //track ai feedback
 
   AiFocusDjRecommendation? _aiRecommendation; //ai state recommendation, store results
   bool _aiApplied = false; //whether ai was applied
@@ -254,6 +255,21 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for v
     final String year = date.year.toString();
     return '$month/$day/$year';
   }
+  Future<void> _submitAiFeedback(int feedback) async { //adds ai feedback function
+    setState(() {
+      _aiFeedback = feedback;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          feedback == 1
+              ? 'Glad you liked the suggestion! 👍'
+              : 'Thank you for the feedback. 👎',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) { //UI build
@@ -435,6 +451,36 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for v
                                     ),
                                   ),
                                 ],
+                                const SizedBox(height: 16),
+                                Text( //feedback
+                                  'Was this recommendation helpful?',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton( //thumbs up
+                                      icon: Icon(
+                                        Icons.thumb_up,
+                                        color: _aiFeedback == 1 ? Colors.green : null, //highlight if selected
+                                      ),
+                                      onPressed: () => _submitAiFeedback(1),
+                                    ),
+
+                                    const SizedBox(width: 20),
+
+                                    IconButton( //thumbs down
+                                      icon: Icon(
+                                        Icons.thumb_down,
+                                        color: _aiFeedback == -1 ? Colors.red : null, //highlight if selected
+                                      ),
+                                      onPressed: () => _submitAiFeedback(-1),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ],
                           ),
