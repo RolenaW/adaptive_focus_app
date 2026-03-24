@@ -53,7 +53,6 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                presetNameController.dispose();
               },
               child: const Text('Cancel'),
             ),
@@ -88,7 +87,6 @@ class _SoundscapeScreenState extends State<SoundscapeScreen> {
                   if (!mounted) return;
 
                   Navigator.of(context).pop();
-                  presetNameController.dispose();
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

@@ -4,10 +4,8 @@ import '../data/database_helper.dart';
 
 class ActiveSessionScreen extends StatefulWidget { //ActiveSessionScreen class created. StatefulWidget used.
   final int? sessionId; //session id to mark session as complete
-
-  const ActiveSessionScreen({ 
-    super.key,
-    this.sessionId,
+  const ActiveSessionScreen({super.key,this.sessionId, 
+    
   });
 
   @override
@@ -19,7 +17,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   int _remainingSeconds = 25 * 60; //tracks how much time left
   bool _isRunning = false; //tracks whether time is active
   bool _isBreak = false; //track if in break or focus mode
-
+  
   @override
   void dispose() {
     _timer?.cancel(); //stops the timer if the screen is left
