@@ -1,3 +1,4 @@
+import 'package:adaptive_focus_app/screens/active_session_screen.dart';
 import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 
@@ -461,6 +462,18 @@ class _InsightsScreenState extends State<InsightsScreen> {
                                       'Date: ${_formatSessionDate(sessionDate)}\n'
                                       'Completed: ${completed ? 'Yes' : 'No'}',
                                     ),
+                                    onTap: () { //user can access older sessions
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ActiveSessionScreen(
+                                            sessionId: session['id'],
+                                            workDuration: session['work_duration_minutes'],
+                                            breakDuration: session['break_duration_minutes'],
+                                          ),
+                                        ),
+                                      );
+                                    },
                                     isThreeLine: true,
                                     trailing: IconButton(
                                       icon: const Icon(Icons.edit_outlined),
