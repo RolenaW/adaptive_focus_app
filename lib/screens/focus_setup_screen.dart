@@ -231,7 +231,10 @@ class _FocusSetupScreenState extends State<FocusSetupScreen> { //forms key for v
       Navigator.push( //open active session tied to the saved database row
         context,
         MaterialPageRoute(
-          builder: (context) => ActiveSessionScreen(sessionId: insertedId),
+          builder: (context) => ActiveSessionScreen(sessionId: insertedId,
+            workDuration: _selectedWorkDuration,
+            breakDuration: _selectedBreakDuration,
+          ),
         ),
       );
     } catch (error) {

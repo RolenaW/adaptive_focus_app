@@ -4,8 +4,11 @@ import '../data/database_helper.dart';
 
 class ActiveSessionScreen extends StatefulWidget { //ActiveSessionScreen class created. StatefulWidget used.
   final int? sessionId; //session id to mark session as complete
+  final int workDuration;
+  final int breakDuration;
   const ActiveSessionScreen({super.key,this.sessionId, 
-    
+    required this.workDuration,
+    required this.breakDuration,
   });
 
   @override
@@ -14,10 +17,16 @@ class ActiveSessionScreen extends StatefulWidget { //ActiveSessionScreen class c
 
 class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   Timer? _timer; //setting up the timer
-  int _remainingSeconds = 25 * 60; //tracks how much time left
+  late int _remainingSeconds; //tracks how much time left
   bool _isRunning = false; //tracks whether time is active
   bool _isBreak = false; //track if in break or focus mode
   
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = widget.workDuration * 60; //uses passed value instead
+  }
+
   @override
   void dispose() {
     _timer?.cancel(); //stops the timer if the screen is left
@@ -109,7 +118,9 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     setState(() {
       _isRunning = false;
       _isBreak = !_isBreak;
-      _remainingSeconds = _isBreak ? 5 * 60 : 25 * 60;
+      _remainingSeconds = _isBreak 
+        ? widget.breakDuration * 60
+        : widget.workDuration * 60;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(

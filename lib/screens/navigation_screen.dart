@@ -16,7 +16,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   final List<Widget> _screens = const <Widget>[ //list that stores the pages shown for each tab
     FocusSetupScreen(), //index 0 ^
-    ActiveSessionScreen(),
+    ActiveSessionScreen(
+      workDuration: 25,
+      breakDuration: 5,
+    ),
     SoundscapeScreen(),
     InsightsScreen(),
   ];
