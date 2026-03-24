@@ -52,6 +52,7 @@ class DatabaseHelper {
         break_duration_minutes INTEGER NOT NULL,
         session_date TEXT NOT NULL,
         completed INTEGER NOT NULL DEFAULT 0,
+        ai_feedback INTEGER NOT NULL,
         created_at TEXT NOT NULL
       )
     ''');
@@ -143,6 +144,16 @@ class DatabaseHelper {
       focusSessionsTable,
       where: 'id = ?',
       whereArgs: <Object>[id],
+    );
+  }
+  Future<int> updateAiFeedback(int sessionId, int feedback) async {
+    final db = await database;
+
+    return await db.update(
+      'focus_sessions',
+      {'ai_feedback': feedback},
+      where: 'id = ?',
+      whereArgs: [sessionId],
     );
   }
 
